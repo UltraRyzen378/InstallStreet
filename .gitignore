@@ -1,0 +1,19 @@
+# Generated binaries
+*.exe
+*.dll
+
+# Runtime downloads, build artifacts, fixtures, and logs
+/tmp/
+/StatusHQ/
+/debug.log
+
+# macOS metadata
+.DS_Store
+._*
+
+/node_modules/
+/dist/
+
+# Personal InstallStreet profile
+/gh-profile.json
+/.gh-profile-*.tmp

@@ -1,0 +1,192 @@
+# InstallStreet
+
+Open InstallStreet.exe to launch the Electron desktop window. Run InstallStreet attempts
+the complete setup; tasks that are already configured are skipped. Retry setup
+attempts the complete setup again. Check only performs detection without changes.
+Open logs opens StatusHQ. There is no task selection or deselection.
+
+## Tasks and libraries
+
+| Task | Compiled library |
+| --- | --- |
+| Chrome | AppL/GoogleChrome.dll |
+| WinGet | AppL/winget.dll |
+| Codex | AppL/codex.dll |
+| Rufus + desktop shortcut | AppL/Rufus.dll |
+| VS Code + desktop shortcut | AppL/VSCode.dll |
+| .NET 10 SDK | AppL/Dotnet10.dll |
+| Roblox Player | AppL/Roblox.dll |
+| nvm-windows, Node.js LTS, npm | AppL/nvm-windows.dll |
+| Dark mode | DisplayCity/DarkMode.dll |
+| Hidden files | Files/showHiddenFiles.dll |
+| File extensions | Files/showFileExtensions.dll |
+| Running log icon | VaultHouse/RunningIcon.dll |
+
+InstallStreet loads each task DLL directly. Chrome contains C# installation logic.
+The other installer/settings DLLs embed the PowerShell task implementation at
+build time and share TaskRuntime.dll. workers/task.ps1 is their editable source;
+the built task DLLs do not read that file at runtime. Settings and the icon apply
+to the effective administrator account. The application requires elevation at startup.
+
+The former batch group/utility entries are compiled libraries too:
+__init__.dll, AppL/init.dll, DisplayCity/init.dll, Files/__set__/applyChanges.dll,
+workers/WhereAppL/whereappl.dll, VaultHouse/Guards/AdminRights.dll, and
+VaultHouse/build-running-helper.dll. DLLs are loaded by a .NET host; double-click
+InstallStreet.exe to start the app. There are no batch files in the project.
+
+## Command line
+
+```
+InstallStreet.Cli.exe --check
+InstallStreet.Cli.exe --run all
+InstallStreet.Cli.exe --run chrome,codex
+InstallStreet.Cli.exe --register-icon
+InstallStreet.Cli.exe --retry
+InstallStreet.Cli.exe --help
+```
+
+CLI task IDs allow individual integrations. The Electron window always runs the complete
+catalog. Codex, Rufus, and nvm-windows include WinGet as a prerequisite. Failed
+dependencies block dependent tasks; unrelated tasks continue. CLI --retry retries
+failed or pending tasks from the latest run. The window's Retry setup reruns setup.
+
+## Logs
+
+Each run gets a StatusHQ/run-... folder with live .running logs, renamed .done
+or .failed after execution and verification. Successful logs are retained.
+latest.tsv tracks current/pending results; summary.tsv records completed sessions.
+A lock prevents overlapping runs. Interrupted session logs are finalized on the
+next run. --check does not create logs or change settings.
+
+## Build and tests
+
+Use the installed .NET Framework C# compiler through the build script:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File VaultHouse\build.ps1
+InstallStreet.Cli.exe --self-test
+npm run test:ui
+```
+
+The build compiles all DLLs and executables in a staging folder before publishing.
+Previous artifacts are retained under tmp/build for processes still using them.
+Generated DLLs, executables, logs, and temporary files are ignored by Git.
+Runner/bridge tests use fixtures. Electron UI smoke tests perform read-only detection without installations or settings changes.
+Actual installations require a separate end-to-end run.
+
+WinGet uses Microsoft.WinGet.Client and Repair-WinGetPackageManager -Force -Latest
+for bootstrap and dependency resolution. Chrome uses the official Google installer
+and verifies its signature. Rufus uses WinGet package Rufus.Rufus. nvm-windows uses
+CoreyButler.NVMforWindows, then installs and activates Node.js LTS with bundled npm.
+A conflicting standalone Node installation is reported; it is not uninstalled.
+Network and Store availability can affect installation. Settings restoration and
+multi-user management are not included.
+
+Microsoft bootstrap reference:
+https://learn.microsoft.com/en-us/windows/package-manager/winget/
+
+## Electron interface
+
+The interface is in electron/index.html, styles.css, and renderer.js. main.js
+runs the desktop window, while preload.js exposes a limited bridge to the DLL
+runner through InstallStreet.Cli.exe. No task selection is exposed.
+
+Install dependencies with npm install, build the backend with npm run build:tasks,
+and launch with npm start or InstallStreet.exe. Test with npm test and npm run
+test:ui. The Electron dependency is locked in package-lock.json.
+
+InstallStreet.exe is a small launcher for the local Electron runtime. Keep the
+node_modules folder beside it when using this development build. Packaged releases include the Electron runtime and DLL backend.
+
+
+Rufus and VS Code are only ready when their desktop shortcuts point to the
+installed executable. Missing or incorrect shortcuts are repaired without
+reinstalling an existing app. Shortcuts use the actual Windows desktop location,
+including a redirected/OneDrive desktop. .NET 10 installs the SDK (which includes
+the corresponding runtime). Roblox uses the Roblox.Roblox WinGet package.
+
+
+VaultHouse/Appointer/desktopn.dll creates or repairs desktop shortcuts immediately
+for installed Chrome, Codex, Rufus, VS Code, and Roblox Player. Invoke it through
+InstallStreet.Cli.exe --run desktop-apps. It also runs during every complete setup.
+Missing apps are left for their installation tasks. Roblox installation now also
+requires a valid Roblox Player desktop shortcut, including its launch arguments.
+
+
+IconsExtract is included through AppL/IconsExtract.dll. It downloads NirSoft's
+official portable ZIP to install under %LOCALAPPDATA%\InstallStreet\Apps\IconsExtract,
+keeps the included documentation, and creates an IconsExtract desktop shortcut.
+The desktopn helper also repairs that shortcut for existing installations.
+Official download: https://www.nirsoft.net/utils/iconsext.html
+
+
+## Distributable releases
+
+`npm run dist` builds the DLL backend, then creates:
+
+- `dist/InstallStreet-1.0.5-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.0.5-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+
+Both include Electron and all task DLLs. Node.js, npm, the source repository, and
+build tools are not needed to run either release. The MSI installs InstallStreet;
+it does not automatically run app-installation tasks. Open InstallStreet and run
+setup when ready. Actual task installation still requires its downloads/network.
+
+Packaged application logs, downloads, and profile data are kept in
+%APPDATA%/InstallStreet so installation files can remain read-only. Portable here
+means no InstallStreet installation is required; setup tasks still change the PC
+and store application data in your user profile. The MSI is not a portable file.
+
+Run VaultHouse/verify-msi.ps1 to inspect MSI metadata and required payload files.
+The release binaries are unsigned; no signing certificate is configured.
+
+Every setup run includes DisplayCity/Wallpaper.dll, setting the current user's
+wallpaper to C:\Windows\Web\Wallpaper\Theme1\img4.jpg. It verifies the active
+wallpaper, skips an existing match, and reports a missing image as a task failure.
+Check only does not change wallpaper. Releases 1.0.1 include the wallpaper DLL.
+
+
+The desktopn helper also creates PowerShell and Command Prompt desktop shortcuts
+using the built-in Windows executables. Both open in your user profile folder.
+
+
+Git (Git.Git) and GitHub CLI (GitHub.cli) are included in every setup run, through
+AppL/Git.dll and AppL/GitHubCLI.dll. When gh is missing, the desktop interface
+asks for a username and email to save in InstallStreet's local gh-profile.json.
+It then shows a separate warning before optionally setting Git's global user.name
+and user.email. Declining the warning leaves Git config unchanged; the local
+profile remains saved. Skipping the profile still installs all applications.
+No gh authentication or credential files are changed. gh config does not provide
+username/email settings; the saved profile is an InstallStreet preference.
+CLI-only runs install the tools without prompting for or changing Git identity.
+
+
+Every run includes ConsumerFeatures.dll, setting HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SilentInstalledAppsEnabled to DWORD 0.
+The task verifies the value and DWORD type. It does not uninstall existing apps,
+disable Store updates, or restart Windows. A restart may be needed. This is the
+specific current-user registry preference; it is not a guarantee against every
+Windows promotion or future feature-update changes.
+
+
+Dimmer 2.0.1 uses the exact supplied ZIP URL, preserves its bundled documentation,
+installs under %LOCALAPPDATA%\InstallStreet\Apps\Dimmer, and creates a desktop
+shortcut. It is not launched or added to startup automatically.
+Python uses Python.Python.3.14 and verifies the interpreter and pip. Existing
+working Python 3.14+ environments are skipped; missing pip is repaired.
+LinkedInRemoval.dll runs Get-AppxPackage -AllUsers '*LinkedIn*' | Remove-AppxPackage
+-AllUsers inside the administrator-required setup session. It verifies absence and reports UAC
+cancellation as failure. Check only detects packages without uninstalling. This removes
+installed Appx registrations, not provisioned packages for future accounts.
+
+
+InstallStreet requires administrator access for every desktop and CLI session.
+Windows launch manifests require elevation for the GUI, CLI, and compatibility
+helper. The Electron startup gate also prevents npm/development launches from
+opening the interface without administrator access. Canceling UAC stops startup.
+Electron renderer sandboxing stays enabled. Per-user settings apply to the
+effective administrator account; entering another account's credentials changes
+which account receives those settings. Developer smoke tests and CLI checks must
+now be launched from an elevated terminal. DLL and packaging verification can
+still inspect binaries without launching the application.
+
+

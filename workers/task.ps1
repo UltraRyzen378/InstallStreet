@@ -1,0 +1,453 @@
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
+    [string]$Task,
+    [ValidateSet('Check','Run')][string]$Mode = 'Check'
+)
+$ErrorActionPreference = 'Stop'
+$taskRoot = $env:INSTALLSTREET_TASK_ROOT
+if (!$taskRoot) { $taskRoot = Split-Path $PSScriptRoot -Parent }
+$taskDataRoot = $env:INSTALLSTREET_DATA_ROOT
+if (!$taskDataRoot) { $taskDataRoot = $taskRoot }
+
+function Find-Winget {
+    $command = Get-Command winget.exe -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
+    if (Test-Path -LiteralPath $alias) { return $alias }
+    $package = Get-AppxPackage Microsoft.DesktopAppInstaller | Select-Object -First 1
+    if ($package) {
+        $candidate = Join-Path $package.InstallLocation 'winget.exe'
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    return $null
+}
+function Test-Winget {
+    $exe = Find-Winget
+    if (!$exe) { return $false }
+    $version = & $exe --version 2>&1
+    return ($LASTEXITCODE -eq 0 -and "$version" -match 'v\d+\.\d+')
+}
+function Test-Chrome {
+    $dll = Join-Path $taskRoot 'AppL\GoogleChrome.dll'
+    if (!(Test-Path -LiteralPath $dll)) { throw 'GoogleChrome.dll is missing. Rebuild InstallStreet.' }
+    [Reflection.Assembly]::LoadFrom($dll) | Out-Null
+    return [GoogleChromeTask]::IsInstalled()
+}
+function Test-RegistryValue([string]$Path, [string]$Name, [int]$Value) {
+    if (!(Test-Path $Path)) { return $false }
+    return ((Get-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction SilentlyContinue).$Name -eq $Value)
+}
+function Refresh-TaskEnvironment {
+    foreach ($name in @('NVM_HOME','NVM_SYMLINK')) {
+        $value = [Environment]::GetEnvironmentVariable($name, 'User')
+        if (!$value) { $value = [Environment]::GetEnvironmentVariable($name, 'Machine') }
+        if ($value) { [Environment]::SetEnvironmentVariable($name, $value, 'Process') }
+    }
+    $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = [Environment]::ExpandEnvironmentVariables($machine + ';' + $user + ';' + $env:Path)
+}
+function Find-Nvm {
+    $command = Get-Command nvm.exe -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    foreach ($folder in @($env:NVM_HOME, "$env:APPDATA\nvm", "$env:LOCALAPPDATA\nvm", "$env:ProgramFiles\nvm")) {
+        if ($folder) {
+            $candidate = Join-Path $folder 'nvm.exe'
+            if (Test-Path -LiteralPath $candidate) { return $candidate }
+        }
+    }
+    return $null
+}
+function Test-NvmSetup {
+    Refresh-TaskEnvironment
+    $exe = Find-Nvm
+    if (!$exe) { return $false }
+    $version = & $exe version 2>&1
+    if ($LASTEXITCODE -ne 0 -or "$version" -notmatch '\d+\.\d+') { return $false }
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    if (!$node -or !$npm) { return $false }
+    $nodeVersion = & $node.Source --version 2>&1
+    if ($LASTEXITCODE -ne 0 -or "$nodeVersion" -notmatch '^v\d+\.\d+') { return $false }
+    $npmVersion = & $npm.Source --version 2>&1
+    return ($LASTEXITCODE -eq 0 -and "$npmVersion" -match '\d+\.\d+')
+}
+function Test-WingetPackage([string]$Id) {
+    $exe = Find-Winget
+    if (!$exe) { return $false }
+    $result = & $exe list --id $Id --exact --source winget --disable-interactivity 2>&1
+    return ($LASTEXITCODE -eq 0 -and "$result" -match [regex]::Escape($Id))
+}
+function Install-WingetPackage([string]$Id) {
+    if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }
+    $exe = Find-Winget
+    & $exe install --id $Id --exact --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity
+    if ($LASTEXITCODE -notin @(0,3010)) { throw "$Id installation failed: $LASTEXITCODE" }
+    if ($LASTEXITCODE -eq 3010) { Write-Output "$Id requested a restart." }
+}
+function Find-VSCode {
+    foreach ($path in @("$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe", "$env:ProgramFiles\Microsoft VS Code\Code.exe", "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe")) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) { return $path }
+    }
+    foreach ($key in @('HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Code.exe','HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Code.exe')) {
+        if (Test-Path $key) { $path = (Get-Item $key).GetValue(''); if ($path -and (Test-Path -LiteralPath $path)) { return $path } }
+    }
+    return $null
+}
+function Find-Rufus {
+    $command = Get-Command rufus.exe -ErrorAction SilentlyContinue
+    if ($command -and (Test-Path -LiteralPath $command.Source)) { return $command.Source }
+    foreach ($base in @("$env:LOCALAPPDATA\Microsoft\WinGet", "$env:ProgramFiles\WinGet")) {
+        $link = Join-Path $base 'Links\rufus.exe'
+        if (Test-Path -LiteralPath $link -PathType Leaf) { return $link }
+        $packages = Join-Path $base 'Packages'
+        if (Test-Path -LiteralPath $packages) {
+            foreach ($folder in (Get-ChildItem -LiteralPath $packages -Directory -Filter 'Rufus.Rufus*')) {
+                $exe = Get-ChildItem -LiteralPath $folder.FullName -File -Recurse -Filter 'rufus*.exe' | Select-Object -First 1
+                if ($exe) { return $exe.FullName }
+            }
+        }
+    }
+    return $null
+}
+function Test-DesktopShortcut([string]$Name, [string]$Target, [string]$Desktop = [Environment]::GetFolderPath('DesktopDirectory'), [string]$Arguments = '', [string]$WorkingDirectory = '') {
+    if (!$Target -or !$Desktop) { return $false }
+    $file = Join-Path $Desktop ($Name + '.lnk')
+    if (!(Test-Path -LiteralPath $file)) { return $false }
+    $shell = $null; $shortcut = $null
+    try {
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($file)
+        return ((!$WorkingDirectory -or ($shortcut.WorkingDirectory -and [IO.Path]::GetFullPath($shortcut.WorkingDirectory).Equals([IO.Path]::GetFullPath($WorkingDirectory), [StringComparison]::OrdinalIgnoreCase))) -and $shortcut.Arguments -eq $Arguments -and $shortcut.TargetPath -and [IO.Path]::GetFullPath($shortcut.TargetPath).Equals([IO.Path]::GetFullPath($Target), [StringComparison]::OrdinalIgnoreCase))
+    } finally {
+        if ($shortcut) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) }
+        if ($shell) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
+    }
+}
+function New-DesktopShortcut([string]$Name, [string]$Target, [string]$Desktop = [Environment]::GetFolderPath('DesktopDirectory'), [string]$Arguments = '', [string]$WorkingDirectory = '') {
+    if (!$Target -or !(Test-Path -LiteralPath $Target -PathType Leaf)) { throw "Cannot create $Name shortcut: executable was not found." }
+    if (!$Desktop) { throw 'The desktop folder could not be located.' }
+    if (!(Test-Path -LiteralPath $Desktop)) { New-Item -ItemType Directory -Path $Desktop -Force | Out-Null }
+    $shell = $null; $shortcut = $null
+    try {
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut((Join-Path $Desktop ($Name + '.lnk')))
+        $shortcut.TargetPath = [IO.Path]::GetFullPath($Target)
+        $shortcut.Arguments = $Arguments
+        $shortcut.WorkingDirectory = $(if ($WorkingDirectory) { $WorkingDirectory } else { Split-Path $Target -Parent })
+        $shortcut.IconLocation = $Target + ',0'
+        $shortcut.Description = $Name
+        $shortcut.Save()
+    } finally {
+        if ($shortcut) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) }
+        if ($shell) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
+    }
+    if (!(Test-DesktopShortcut $Name $Target $Desktop $Arguments $WorkingDirectory)) { throw "$Name desktop shortcut verification failed." }
+    Write-Output "$Name desktop shortcut is ready."
+}
+function Test-Dotnet10 {
+    Refresh-TaskEnvironment
+    $paths = @("$env:ProgramFiles\dotnet\dotnet.exe", "${env:ProgramFiles(x86)}\dotnet\dotnet.exe")
+    $command = Get-Command dotnet.exe -ErrorAction SilentlyContinue
+    if ($command) { $paths = @($command.Source) + $paths }
+    foreach ($path in ($paths | Select-Object -Unique)) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            $sdks = & $path --list-sdks 2>&1
+            if ($LASTEXITCODE -eq 0 -and ($sdks | Where-Object { "$_" -match '^10\.\d+\.\d+\s' })) { return $true }
+        }
+    }
+    return $false
+}
+function Find-Roblox {
+    $versions = Join-Path $env:LOCALAPPDATA 'Roblox\Versions'
+    if (Test-Path -LiteralPath $versions) {
+        foreach ($directory in (Get-ChildItem -LiteralPath $versions -Directory -Filter 'version-*' | Sort-Object LastWriteTime -Descending)) {
+            $exe = Join-Path $directory.FullName 'RobloxPlayerBeta.exe'
+            if (Test-Path -LiteralPath $exe -PathType Leaf) { return $exe }
+        }
+    }
+    return $null
+}
+function Find-IconsExtract {
+    $command = Get-Command iconsext.exe -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    foreach ($folder in @("$env:LOCALAPPDATA\InstallStreet\Apps\IconsExtract", "$env:ProgramFiles\NirSoft\IconsExtract", "${env:ProgramFiles(x86)}\NirSoft\IconsExtract", "$env:ProgramFiles\IconsExtract", "${env:ProgramFiles(x86)}\IconsExtract")) {
+        $target = Join-Path $folder 'iconsext.exe'
+        if (Test-Path -LiteralPath $target -PathType Leaf) { return $target }
+    }
+    return $null
+}
+function Test-DimmerBinary([string]$Path) {
+    if (!(Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    $info = (Get-Item -LiteralPath $Path).VersionInfo
+    $version = New-Object Version($info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart)
+    return ($version -ge [version]'2.0.1.0')
+}
+function Find-Dimmer {
+    $path = Join-Path $env:LOCALAPPDATA 'InstallStreet\Apps\Dimmer\Dimmer.exe'
+    if (Test-DimmerBinary $path) { return $path }
+    foreach ($folder in @("$env:ProgramFiles\Dimmer", "${env:ProgramFiles(x86)}\Dimmer")) {
+        $path = Join-Path $folder 'Dimmer.exe'
+        if (Test-DimmerBinary $path) { return $path }
+    }
+    return $null
+}
+function Find-Python {
+    Refresh-TaskEnvironment
+    $paths = @("$env:LOCALAPPDATA\Programs\Python\Python314\python.exe", "$env:ProgramFiles\Python314\python.exe")
+    $command = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($command -and $command.Source -notlike '*\Microsoft\WindowsApps\*') { $paths = @($command.Source) + $paths }
+    foreach ($base in @('HKCU:\Software\Python\PythonCore\3.14\InstallPath', 'HKLM:\Software\Python\PythonCore\3.14\InstallPath', 'HKLM:\Software\WOW6432Node\Python\PythonCore\3.14\InstallPath')) {
+        if (Test-Path $base) {
+            $key = Get-Item $base
+            $executable = $key.GetValue('ExecutablePath')
+            if ($executable) { $paths += $executable }
+            elseif ($key.GetValue('')) { $paths += Join-Path $key.GetValue('') 'python.exe' }
+        }
+    }
+    foreach ($path in ($paths | Select-Object -Unique)) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            $version = & $path --version 2>&1
+            if ($LASTEXITCODE -eq 0 -and "$version" -match '^Python 3\.(\d+)\.' -and [int]$Matches[1] -ge 14) { return $path }
+        }
+    }
+    return $null
+}
+function Test-Python {
+    $exe = Find-Python
+    if (!$exe) { return $false }
+    $pip = & $exe -m pip --version 2>&1
+    return ($LASTEXITCODE -eq 0 -and "$pip" -match '^pip \d+')
+}
+function Get-DesktopApps {
+    $system = [Environment]::SystemDirectory
+    foreach ($entry in @(@('PowerShell', 'WindowsPowerShell\v1.0\powershell.exe'), @('Command Prompt', 'cmd.exe'))) {
+        $target = Join-Path $system $entry[1]
+        if (Test-Path -LiteralPath $target -PathType Leaf) {
+            [pscustomobject]@{ Name = $entry[0]; Target = $target; Arguments = ''; WorkingDirectory = $env:USERPROFILE }
+        }
+    }
+    foreach ($entry in @(@('Rufus','Find-Rufus'),@('Visual Studio Code','Find-VSCode'),@('Roblox Player','Find-Roblox'),@('IconsExtract','Find-IconsExtract'),@('Dimmer','Find-Dimmer'))) {
+        $target = & $entry[1]
+        if ($target) { [pscustomobject]@{ Name = $entry[0]; Target = $target; Arguments = $(if ($entry[0] -eq 'Roblox Player') { '-app' } else { '' }) } }
+    }
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
+        $target = Join-Path $base 'Google\Chrome\Application\chrome.exe'
+        if (Test-Path -LiteralPath $target) { [pscustomobject]@{ Name = 'Google Chrome'; Target = $target; Arguments = '' }; break }
+    }
+    $package = Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1
+    if ($package) {
+        $manifest = Get-AppxPackageManifest -Package $package.PackageFullName
+        $application = $manifest.Package.Applications.Application | Select-Object -First 1
+        if ($application.Id) {
+            [pscustomobject]@{ Name = 'Codex'; Target = (Join-Path $env:WINDIR 'explorer.exe'); Arguments = ('shell:AppsFolder\' + $package.PackageFamilyName + '!' + $application.Id) }
+        }
+    }
+}
+function Test-DesktopApps {
+    foreach ($app in @(Get-DesktopApps)) {
+        if (!(Test-DesktopShortcut $app.Name $app.Target -Arguments $app.Arguments -WorkingDirectory $app.WorkingDirectory)) { return $false }
+    }
+    return $true
+}
+function Find-GitTool([string]$Tool) {
+    Refresh-TaskEnvironment
+    $command = Get-Command ($Tool + '.exe') -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $paths = if ($Tool -eq 'git') {
+        @("$env:ProgramFiles\Git\cmd\git.exe", "${env:ProgramFiles(x86)}\Git\cmd\git.exe", "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe")
+    } else {
+        @("$env:ProgramFiles\GitHub CLI\gh.exe", "${env:ProgramFiles(x86)}\GitHub CLI\gh.exe", "$env:LOCALAPPDATA\Programs\GitHub CLI\gh.exe")
+    }
+    foreach ($path in $paths) { if (Test-Path -LiteralPath $path -PathType Leaf) { return $path } }
+    return $null
+}
+function Test-GitTool([string]$Tool) {
+    $exe = Find-GitTool $Tool
+    if (!$exe) { return $false }
+    $version = & $exe --version 2>&1
+    return ($LASTEXITCODE -eq 0 -and "$version" -match '\d+\.\d+')
+}
+function Test-Task {
+    switch ($Task) {
+        'winget' { return (Test-Winget) }
+        'git' { return (Test-GitTool 'git') }
+        'gh' { return (Test-GitTool 'gh') }
+        'chrome' { return (Test-Chrome) }
+        'rufus' { $target = Find-Rufus; return ($target -and (Test-DesktopShortcut 'Rufus' $target)) }
+        'vscode' { $target = Find-VSCode; return ($target -and (Test-DesktopShortcut 'Visual Studio Code' $target)) }
+        'dotnet10' { return (Test-Dotnet10) }
+        'roblox' { $target = Find-Roblox; return ($target -and (Test-DesktopShortcut 'Roblox Player' $target -Arguments '-app')) }
+        'iconsextract' { $target = Find-IconsExtract; return ($target -and (Test-DesktopShortcut 'IconsExtract' $target)) }
+        'dimmer' { $target = Find-Dimmer; return ($target -and (Test-DesktopShortcut 'Dimmer' $target)) }
+        'python' { return (Test-Python) }
+        'desktop-apps' { return (Test-DesktopApps) }
+        'nvm-windows' { return (Test-NvmSetup) }
+        'codex' { return [bool](Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1) }
+        'dark-mode' {
+            $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+            return ((Test-RegistryValue $key 'AppsUseLightTheme' 0) -and (Test-RegistryValue $key 'SystemUsesLightTheme' 0))
+        }
+        'hidden-files' { return (Test-RegistryValue 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 1) }
+        'file-extensions' { return (Test-RegistryValue 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 0) }
+        'running-icon' {
+            $extension = 'HKCU:\Software\Classes\.running'
+            $icon = 'HKCU:\Software\Classes\InstallStreet.Running\DefaultIcon'
+            $expected = '"' + (Join-Path $taskRoot 'VaultHouse\icons\.running\running.ico') + '",0'
+            return ((Test-Path $extension) -and (Test-Path $icon) -and ((Get-Item $extension).GetValue('') -eq 'InstallStreet.Running') -and ((Get-Item $icon).GetValue('') -eq $expected))
+        }
+    }
+}
+function Set-Dword([string]$Path, [string]$Name, [int]$Value) {
+    if (!(Test-Path -LiteralPath $Path)) { New-Item -Path $Path -Force | Out-Null }
+    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType DWord -Force | Out-Null
+}
+try {
+    if ($Mode -eq 'Check') {
+        if (Test-Task) { Write-Output "$Task is ready."; exit 0 }
+        Write-Output "$Task needs setup."
+        exit 10
+    }
+    if (Test-Task) { Write-Output "$Task is already configured; skipping."; exit 0 }
+    switch ($Task) {
+        'winget' {
+            Write-Output 'Bootstrapping WinGet and its dependencies with Microsoft.WinGet.Client...'
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
+            Install-Module -Name Microsoft.WinGet.Client -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
+            Import-Module Microsoft.WinGet.Client
+            Repair-WinGetPackageManager -Force -Latest
+        }
+        'chrome' {
+            [Reflection.Assembly]::LoadFrom((Join-Path $taskRoot 'AppL\GoogleChrome.dll')) | Out-Null
+            $result = [GoogleChromeTask]::Execute($taskRoot, 'Run', $null)
+            if ($result -notin @(0,3010)) { throw "Chrome task failed: $result" }
+        }
+        'git' { Install-WingetPackage 'Git.Git' }
+        'gh' { Install-WingetPackage 'GitHub.cli' }
+        'codex' {
+            if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }
+            $exe = Find-Winget
+            & $exe install --id 9PLM9XGG6VKS --exact --source msstore --accept-package-agreements --accept-source-agreements --disable-interactivity
+            if ($LASTEXITCODE -notin @(0,3010)) { throw "Codex installation failed: $LASTEXITCODE" }
+            if ($LASTEXITCODE -eq 3010) { Write-Output 'Codex requested a restart.' }
+        }
+        'dark-mode' {
+            $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+            Set-Dword $key 'AppsUseLightTheme' 0
+            Set-Dword $key 'SystemUsesLightTheme' 0
+        }
+        'rufus' {
+            $target = Find-Rufus
+            if (!$target) { Install-WingetPackage 'Rufus.Rufus'; Refresh-TaskEnvironment; $target = Find-Rufus }
+            New-DesktopShortcut 'Rufus' $target
+        }
+        'vscode' {
+            $target = Find-VSCode
+            if (!$target) { Install-WingetPackage 'Microsoft.VisualStudioCode'; $target = Find-VSCode }
+            New-DesktopShortcut 'Visual Studio Code' $target
+        }
+        'dotnet10' { Install-WingetPackage 'Microsoft.DotNet.SDK.10'; Refresh-TaskEnvironment }
+        'roblox' {
+            $target = Find-Roblox
+            if (!$target) { Install-WingetPackage 'Roblox.Roblox'; $target = Find-Roblox }
+            New-DesktopShortcut 'Roblox Player' $target -Arguments '-app'
+        }
+        'iconsextract' {
+            $target = Find-IconsExtract
+            if (!$target) {
+                $download = Join-Path $taskDataRoot ('tmp\IconsExtract\' + [Guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory -Path $download -Force | Out-Null
+                $zip = Join-Path $download 'iconsext.zip'
+                & curl.exe --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --max-time 300 'https://www.nirsoft.net/utils/iconsext.zip' --output $zip
+                if ($LASTEXITCODE -ne 0) { throw "IconsExtract download failed: $LASTEXITCODE" }
+                $extracted = Join-Path $download 'extracted'
+                Expand-Archive -LiteralPath $zip -DestinationPath $extracted
+                if (!(Test-Path -LiteralPath (Join-Path $extracted 'iconsext.exe') -PathType Leaf)) { throw 'The NirSoft archive does not contain iconsext.exe.' }
+                $destination = Join-Path $env:LOCALAPPDATA 'InstallStreet\Apps\IconsExtract'
+                New-Item -ItemType Directory -Path $destination -Force | Out-Null
+                foreach ($item in (Get-ChildItem -LiteralPath $extracted)) { Copy-Item -LiteralPath $item.FullName -Destination $destination -Recurse -Force }
+                $target = Join-Path $destination 'iconsext.exe'
+            }
+            New-DesktopShortcut 'IconsExtract' $target
+        }
+        'dimmer' {
+            $target = Find-Dimmer
+            if (!$target) {
+                $download = Join-Path $taskDataRoot ('tmp\Dimmer\' + [Guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory -Path $download -Force | Out-Null
+                $zip = Join-Path $download 'dimmer-2.0.1.zip'
+                & curl.exe --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --max-time 300 'https://www.nelsonpires.com/download/dimmer/2.0.1/zip' --output $zip
+                if ($LASTEXITCODE -ne 0) { throw "Dimmer download failed: $LASTEXITCODE" }
+                $extracted = Join-Path $download 'extracted'
+                Expand-Archive -LiteralPath $zip -DestinationPath $extracted
+                if (!(Test-DimmerBinary (Join-Path $extracted 'Dimmer.exe'))) { throw 'The Dimmer ZIP does not contain the expected Dimmer 2.0.1 executable.' }
+                $destination = Join-Path $env:LOCALAPPDATA 'InstallStreet\Apps\Dimmer'
+                New-Item -ItemType Directory -Path $destination -Force | Out-Null
+                foreach ($item in (Get-ChildItem -LiteralPath $extracted)) { Copy-Item -LiteralPath $item.FullName -Destination $destination -Recurse -Force }
+                $target = Join-Path $destination 'Dimmer.exe'
+            }
+            New-DesktopShortcut 'Dimmer' $target
+        }
+        'python' {
+            $exe = Find-Python
+            if (!$exe) { Install-WingetPackage 'Python.Python.3.14'; $exe = Find-Python }
+            if (!$exe) { throw 'Python 3.14 or newer could not be located after installation. Reopen InstallStreet and retry.' }
+            & $exe -m ensurepip --upgrade
+            if ($LASTEXITCODE -ne 0) { throw "Python pip setup failed: $LASTEXITCODE" }
+        }
+        'desktop-apps' {
+            foreach ($app in @(Get-DesktopApps)) { New-DesktopShortcut $app.Name $app.Target -Arguments $app.Arguments -WorkingDirectory $app.WorkingDirectory }
+        }
+        'nvm-windows' {
+            Refresh-TaskEnvironment
+            $nvm = Find-Nvm
+            if (!$nvm) {
+                if (Get-Command node.exe -ErrorAction SilentlyContinue) {
+                    throw 'A standalone Node.js installation is present. Uninstall it before setting up nvm-windows to avoid a conflicting Node path; then retry setup.'
+                }
+                Install-WingetPackage 'CoreyButler.NVMforWindows'
+                Refresh-TaskEnvironment
+                $nvm = Find-Nvm
+                if (!$nvm) { throw 'nvm-windows was installed but nvm.exe could not be located. Reopen InstallStreet and retry.' }
+            }
+            Write-Output 'Installing Node.js LTS and its bundled npm through nvm-windows...'
+            & $nvm install lts
+            if ($LASTEXITCODE -ne 0) { throw "nvm install lts failed: $LASTEXITCODE" }
+            & $nvm use lts
+            if ($LASTEXITCODE -ne 0) { throw "nvm use lts failed: $LASTEXITCODE" }
+            Refresh-TaskEnvironment
+            Write-Output 'Node.js and npm will be verified before this task is marked done.'
+        }
+        'hidden-files' { Set-Dword 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Hidden' 1 }
+        'file-extensions' { Set-Dword 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'HideFileExt' 0 }
+        'running-icon' {
+            $icon = Join-Path $taskRoot 'VaultHouse\icons\.running\running.ico'
+            if (!(Test-Path -LiteralPath $icon -PathType Leaf)) { throw "Icon not found: $icon" }
+            foreach ($key in @('HKCU:\Software\Classes\.running','HKCU:\Software\Classes\InstallStreet.Running','HKCU:\Software\Classes\InstallStreet.Running\DefaultIcon')) { if (!(Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null } }
+            Set-Item -LiteralPath 'HKCU:\Software\Classes\.running' -Value 'InstallStreet.Running'
+            Set-Item -LiteralPath 'HKCU:\Software\Classes\InstallStreet.Running' -Value 'InstallStreet running log'
+            Set-Item -LiteralPath 'HKCU:\Software\Classes\InstallStreet.Running\DefaultIcon' -Value ('"' + $icon + '",0')
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class InstallStreetShell { [DllImport("shell32.dll")] public static extern void SHChangeNotify(uint e, uint f, IntPtr a, IntPtr b); }'
+            [InstallStreetShell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
+        }
+    }
+    Write-Output "$Task action completed; the runner will verify the result."
+    exit 0
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+
+
+
+
+
+
+
+
+
+
+
+

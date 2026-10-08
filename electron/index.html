@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>InstallStreet</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <header><div class="brand"><span class="mark">IS</span>InstallStreet</div><span class="badge">ADMINISTRATOR</span></header>
+  <main>
+    <section class="hero"><p class="eyebrow">YOUR PC. READY TO GO.</p><h1>Set up this PC.</h1><p class="description">Apps, developer tools, and Windows settings.<br>Every task is included on every run.</p>
+      <div class="actions"><button id="run" class="primary">Run InstallStreet <span aria-hidden="true">↗</span></button><button id="check">Check only</button><button id="retry">Retry setup</button><button id="logs" class="quiet">Open logs</button></div>
+    </section>
+    <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 / 21 tasks</span></div><progress id="progress" value="0" max="21"></progress></section>
+    <section class="output-panel"><div class="output-header"><span><i id="activity"></i>LIVE OUTPUT</span><span id="result">Waiting</span></div><pre id="output" tabindex="0" aria-label="Task output">Output will appear here when setup starts.</pre></section>
+    <footer><span>Existing setups are checked and skipped.</span><span>InstallStreet · Local setup</span></footer>
+  </main>
+  <dialog id="git-dialog" aria-labelledby="git-title">
+    <form id="git-form">
+      <p class="eyebrow">GITHUB CLI SETUP</p><h2 id="git-title">Save your GitHub profile?</h2>
+      <p>GitHub CLI is not installed. Setup will install Git and gh. Save your username and email locally in InstallStreet. These are profile details, not a GitHub login.</p>
+      <label for="git-name">GitHub username</label><input id="git-name" name="name" autocomplete="name" maxlength="256" required>
+      <label for="git-email">Email</label><input id="git-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+      <p class="git-warning">Optional: the next warning asks whether to also use these details for Git global author configuration. Saving this local profile does not change GitHub CLI authentication.</p>
+      <p id="git-existing"></p><p id="git-error" role="alert"></p>
+      <div class="actions"><button type="submit" class="primary">Save profile and continue</button><button type="button" id="git-skip">Continue without profile</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

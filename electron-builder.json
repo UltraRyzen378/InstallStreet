@@ -1,0 +1,64 @@
+{
+  "appId": "app.installstreet.desktop",
+  "productName": "InstallStreet",
+  "asar": true,
+  "npmRebuild": false,
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "electron/**",
+    "package.json",
+    "!electron/*.test.js"
+  ],
+  "extraResources": [
+    {
+      "from": ".",
+      "to": "backend",
+      "filter": [
+        "InstallStreet.Cli.exe",
+        "TaskRuntime.dll",
+        "AppL/*.dll",
+        "DisplayCity/DarkMode.dll",
+        "Files/showHiddenFiles.dll",
+        "Files/showFileExtensions.dll",
+        "VaultHouse/RunningIcon.dll",
+        "VaultHouse/Appointer/desktopn.dll",
+        "VaultHouse/icons/.running/running.ico",
+        "DisplayCity/Wallpaper.dll",
+        "DisplayCity/ConsumerFeatures.dll",
+        "VaultHouse/Guards/LinkedInRemoval.dll"
+      ]
+    }
+  ],
+  "electronDist": "node_modules/electron/dist",
+  "win": {
+    "target": [
+      {
+        "target": "msi",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "signAndEditExecutable": true,
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "signExecutable": false,
+    "requestedExecutionLevel": "requireAdministrator"
+  },
+  "msi": {
+    "oneClick": false,
+    "perMachine": false,
+    "upgradeCode": "F10D21AD-8642-4E69-AF2C-48C87797F6C9",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "runAfterFinish": false
+  },
+  "msiProjectCreated": "./packaging/msi-hook.js"
+}
