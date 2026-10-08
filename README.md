@@ -258,6 +258,11 @@ Available tools:
 - Windows Disk Cleanup with its normal category-selection dialog.
 - Links to Windows storage settings, DISM/CBS logs, and per-operation output logs.
 
+Run All runs every check, then DISM repair, SFC repair, component cleanup, and
+Windows Disk Cleanup, with one confirmation before starting. DISM and SFC repair
+each run once. The sequence stops on failure or a restart request; Disk Cleanup
+still lets you choose which categories to delete.
+
 Repair and component cleanup require confirmation. No operation starts on launch.
 Maintenance and application setup cannot run concurrently. Commands are a fixed
 allowlist; no arbitrary shell input is accepted. Output and percentage updates

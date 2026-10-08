@@ -4,6 +4,13 @@ const progress=document.getElementById('storage-progress');
 const step=document.getElementById('storage-step');
 let preparing=false,wasBusy=false;
 function controls(busy){document.querySelectorAll('[data-operation]').forEach(button=>{button.disabled=busy;});}
+async function startOperation(id){
+  if(preparing)return;preparing=true;controls(true);output.textContent='';
+  try{const result=await window.installstreet.maintenanceStart(id);if(result.canceled)status.textContent='Canceled. No maintenance command was started.';}
+  catch(error){status.textContent=error.message;}
+  finally{preparing=false;controls(false);}
+}
+document.getElementById('storage-run-all').addEventListener('click',()=>startOperation('run-all'));
 window.installstreet.onMaintenanceLog(text=>{output.textContent+=text+'\n';if(output.textContent.length>250000)output.textContent=output.textContent.slice(-200000);output.scrollTop=output.scrollHeight;});
 window.installstreet.onMaintenanceState(state=>{
   if(state.busy && !wasBusy)document.getElementById('storage-status').scrollIntoView({block:'nearest'});wasBusy=state.busy;
@@ -28,12 +35,7 @@ window.installstreet.onMaintenanceProgress(value=>{progress.value=value;});
         const description=document.createElement('p');description.textContent=operation.description;
         const command=document.createElement('div');command.className='command';command.textContent=operation.commands.join(' → ');
         const button=document.createElement('button');button.textContent=group==='Check'?'Run check':group==='Repair'?'Run repair':'Open / run cleanup';button.dataset.operation=operation.id;
-        button.addEventListener('click',async()=>{
-          if(preparing)return;preparing=true;controls(true);output.textContent='';
-          try{const result=await window.installstreet.maintenanceStart(operation.id);if(result.canceled)status.textContent='Canceled. No maintenance command was started.';}
-          catch(error){status.textContent=error.message;}
-          finally{preparing=false;controls(false);}
-        });
+        button.addEventListener('click',()=>startOperation(operation.id));
         card.append(title,description,command,button);grid.append(card);
       }
       root.append(section);

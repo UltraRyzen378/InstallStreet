@@ -20,6 +20,7 @@ const catalog = [
   { id:'component-cleanup', name:'Clean superseded components', group:'Cleanup', description:'Runs supported component cleanup without ResetBase.', confirmation:'Remove superseded Windows components with DISM StartComponentCleanup? No ResetBase, user-file deletion, or automatic restart is included.', steps:[dism('/StartComponentCleanup')] },
   { id:'disk-cleanup', name:'Windows Disk Cleanup', group:'Cleanup', description:'Opens the Windows cleanup dialog. You choose which categories to delete.', steps:[{ file:path.join(system,'cleanmgr.exe'), args:['/d',volume.slice(0,1)], label:'Windows Disk Cleanup', interactive:true }] }
 ];
+catalog.push({ id:'run-all', name:'Run All', group:'All', description:'Checks Windows, repairs the image and system files, then cleans up.', confirmation:'Run all StorageSense checks, repairs, and cleanup in sequence? DISM may download repair files. Superseded components will be removed, and Windows Disk Cleanup will ask you to choose categories. Stops on a failed step or restart request. No automatic restart will occur.', steps:catalog.filter(item=>item.id!=='repair-windows').flatMap(item=>item.steps) });
 function operation(id) {
   const value = catalog.find(item => item.id === id);
   if (!value) throw new Error('Unknown StorageSense operation.');
@@ -33,7 +34,7 @@ class MaintenanceRunner extends EventEmitter {
     if(this.busy)throw new Error('A maintenance operation is already active.');
     this.busy=true;
     this.emit('state',{busy:true,name:selected.name,completed:0,total:selected.steps.length,percent:null,message:'Starting '+selected.name+'…'});
-    let code=0,restart=false,completed=0;
+    let code=0,restart=false,completed=0,ok=true;
     try {
       for(let index=0;index<selected.steps.length;index++) {
         const step=selected.steps[index];
@@ -43,9 +44,8 @@ class MaintenanceRunner extends EventEmitter {
         completed=index+1;
         this.emit('log','Exit code: '+code);
         if(code===3010){restart=true;this.emit('log','Windows requested a restart. Restart manually before continuing maintenance.');break;}
-        if(!(step.accepted || [0]).includes(code))break;
+        if(!(step.accepted || [0]).includes(code)){ok=false;break;}
       }
-      const ok=code===3010 || selected.steps.every(step => (step.accepted || [0]).includes(code));
       const result={code,ok,restart,message:restart?'Restart required. Restart Windows manually.':ok?'Operation finished. Review the output for health and repair results.':'Operation failed or needs attention. Review the output and Windows logs.'};
       this.emit('state',{busy:false,name:selected.name,completed,total:selected.steps.length,percent:null,...result});
       return result;
