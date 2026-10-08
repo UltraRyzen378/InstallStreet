@@ -239,4 +239,3 @@ package version and refuses to reuse a tag pointing at another commit. GitHub
 Actions must be enabled for the repository. The workflow uses the built-in
 GITHUB_TOKEN; no personal token or signing credentials are required. Build jobs
 have read-only repository access, and only the draft-release job can write.
-
