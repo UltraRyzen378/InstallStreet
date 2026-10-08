@@ -5,22 +5,53 @@ the complete setup; tasks that are already configured are skipped. Retry setup
 attempts the complete setup again. Check only performs detection without changes.
 Open logs opens StatusHQ. There is no task selection or deselection.
 
-## Tasks and libraries
+## Applications installed
 
-| Task | Compiled library |
-| --- | --- |
-| Chrome | AppL/GoogleChrome.dll |
-| WinGet | AppL/winget.dll |
-| Codex | AppL/codex.dll |
-| Rufus + desktop shortcut | AppL/Rufus.dll |
-| VS Code + desktop shortcut | AppL/VSCode.dll |
-| .NET 10 SDK | AppL/Dotnet10.dll |
-| Roblox Player | AppL/Roblox.dll |
-| nvm-windows, Node.js LTS, npm | AppL/nvm-windows.dll |
-| Dark mode | DisplayCity/DarkMode.dll |
-| Hidden files | Files/showHiddenFiles.dll |
-| File extensions | Files/showFileExtensions.dll |
-| Running log icon | VaultHouse/RunningIcon.dll |
+Clicking **Run InstallStreet** attempts the full setup below. Existing working
+installations are checked and skipped. Opening InstallStreet or running
+**Check only** does not install these applications.
+
+| Application / tool | Version or source | Installation task |
+| --- | --- | --- |
+| Windows Package Manager (WinGet) | Microsoft.WinGet.Client bootstrap | `winget` |
+| Git | `Git.Git` through WinGet | `git` |
+| GitHub CLI (`gh`) | `GitHub.cli` through WinGet | `gh` |
+| Google Chrome | Official Google installer | `chrome` |
+| OpenAI Codex desktop app | Microsoft Store product `9PLM9XGG6VKS` | `codex` |
+| Rufus | `Rufus.Rufus` through WinGet | `rufus` |
+| Visual Studio Code | `Microsoft.VisualStudioCode` through WinGet | `vscode` |
+| Microsoft .NET 10 SDK | `Microsoft.DotNet.SDK.10`; includes the corresponding runtime | `dotnet10` |
+| Roblox Player | `Roblox.Roblox` through WinGet | `roblox` |
+| nvm-windows | `CoreyButler.NVMforWindows` through WinGet | `nvm-windows` |
+| Node.js | LTS version installed and activated through nvm-windows | `nvm-windows` |
+| npm | Bundled with the Node.js version installed by nvm-windows | `nvm-windows` |
+| Dimmer | Nelson Pires 2.0.1, from the specified official ZIP | `dimmer` |
+| Python | Python 3.14 through `Python.Python.3.14`; existing working 3.14+ environments are skipped | `python` |
+| pip | Included with Python; repaired with `ensurepip` when needed | `python` |
+| NirSoft IconsExtract | Official NirSoft portable ZIP | `iconsextract` |
+
+WinGet bootstrap also installs the **NuGet PowerShell package provider** and
+**Microsoft.WinGet.Client PowerShell module** when needed. WinGet repair and
+application installers can install their required framework dependencies.
+Electron is bundled with InstallStreet itself, rather than installed as a
+separate application. **PowerShell and Command Prompt are existing Windows
+tools**; InstallStreet creates their desktop shortcuts.
+
+## Other setup tasks
+
+These tasks change settings, create shortcuts, or remove an application; they
+are separate from the application installation list above.
+
+| Task | Behavior | Compiled library |
+| --- | --- | --- |
+| LinkedIn removal | Removes installed LinkedIn Appx packages for all users | `VaultHouse/Guards/LinkedInRemoval.dll` |
+| Promoted-app preference | Sets `SilentInstalledAppsEnabled` to DWORD `0` for the effective user | `DisplayCity/ConsumerFeatures.dll` |
+| Wallpaper | Sets `C:\Windows\Web\Wallpaper\Theme1\img4.jpg` | `DisplayCity/Wallpaper.dll` |
+| Dark mode | Enables dark mode for Windows and apps | `DisplayCity/DarkMode.dll` |
+| Hidden files | Shows hidden files in File Explorer | `Files/showHiddenFiles.dll` |
+| File extensions | Shows file extensions in File Explorer | `Files/showFileExtensions.dll` |
+| Desktop shortcuts | Creates or repairs shortcuts for installed desktop apps, PowerShell, and Command Prompt | `VaultHouse/Appointer/desktopn.dll` |
+| Running log icon | Registers the `.running` file icon | `VaultHouse/RunningIcon.dll` |
 
 InstallStreet loads each task DLL directly. Chrome contains C# installation logic.
 The other installer/settings DLLs embed the PowerShell task implementation at
@@ -208,3 +239,4 @@ package version and refuses to reuse a tag pointing at another commit. GitHub
 Actions must be enabled for the repository. The workflow uses the built-in
 GITHUB_TOKEN; no personal token or signing credentials are required. Build jobs
 have read-only repository access, and only the draft-release job can write.
+
