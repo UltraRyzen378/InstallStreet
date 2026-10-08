@@ -190,3 +190,21 @@ now be launched from an elevated terminal. DLL and packaging verification can
 still inspect binaries without launching the application.
 
 
+
+## GitHub release automation
+
+The Windows releases workflow builds and verifies the MSI, portable ZIP, admin
+manifests, and SHA-256 checksums, then creates a draft GitHub release. It never
+runs the setup tasks on the build machine. Draft releases are reviewed and
+published from the repository's Releases page.
+
+For a release, update the version in package.json and package-lock.json, commit
+and push main, then push the matching version tag (for example v1.0.5). A tag
+whose version does not match package.json fails before building. Keep the MSI
+upgrade code unchanged across versions.
+
+Alternatively, run Windows releases from Actions on main. It uses the current
+package version and refuses to reuse a tag pointing at another commit. GitHub
+Actions must be enabled for the repository. The workflow uses the built-in
+GITHUB_TOKEN; no personal token or signing credentials are required. Build jobs
+have read-only repository access, and only the draft-release job can write.

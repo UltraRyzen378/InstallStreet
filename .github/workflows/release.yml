@@ -1,0 +1,140 @@
+name: Windows releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installstreet-releases
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 60
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}\tmp\electron-builder-cache
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Validate release version
+        id: version
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $lock = Get-Content package-lock.json -Raw | ConvertFrom-Json -AsHashtable
+          $version = $package.version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'MSI releases require a stable major.minor.patch version.' }
+          if ($lock.version -ne $version -or $lock.packages[''].version -ne $version) { throw 'package.json and package-lock.json versions differ.' }
+          $tag = 'v' + $version
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF_NAME -ne $tag) { throw 'The tag must exactly match package.json: ' + $tag }
+          $existing = @(git tag --list $tag)
+          if ($existing.Count -gt 0) {
+            $tagCommit = git rev-list -n 1 $tag
+            $headCommit = git rev-parse HEAD
+            if ($tagCommit -ne $headCommit) { throw 'This version tag already points to another commit. Bump the version before releasing.' }
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+
+      - name: Install locked dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+
+      - name: Run tests
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+
+      - name: Build MSI and portable ZIP
+        run: |
+          npm run dist
+          if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
+
+      - name: Verify payloads and administrator requirements
+        run: |
+          & ./VaultHouse/verify-msi.ps1
+          & ./VaultHouse/verify-zip.ps1
+          & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','InstallStreet.Cli.exe','RunningHelper.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe')
+
+      - name: Generate checksums and release notes
+        run: |
+          $files = @(Get-ChildItem dist -File | Where-Object { $_.Extension -in @('.msi','.zip') } | Sort-Object Name)
+          if ($files.Count -ne 2) { throw 'Expected exactly one MSI and one portable ZIP.' }
+          $checksums = $files | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $_.Name }
+          Set-Content dist/SHA256SUMS.txt -Value $checksums -Encoding ascii
+          $notes = @(
+            "InstallStreet $env:RELEASE_TAG for Windows x64.",
+            '',
+            '- MSI: install InstallStreet with desktop and Start menu shortcuts.',
+            '- Portable ZIP: extract and run InstallStreet.exe.',
+            '- Both bundle Electron and the task DLLs; no npm setup is needed.',
+            '- Administrator access is required. Canceling UAC stops startup.',
+            '- Setup starts only after clicking Run; it installs apps, changes Windows settings, and includes all-user LinkedIn Appx removal.',
+            '- Git identity changes require a separate confirmation. gh authentication is unchanged.',
+            '- Binaries are unsigned. SHA256SUMS.txt contains artifact hashes.'
+          )
+          Set-Content dist/RELEASE_NOTES.md -Value $notes -Encoding utf8
+
+      - name: Save release artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-release
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/*.msi
+            dist/*.zip
+            dist/SHA256SUMS.txt
+            dist/RELEASE_NOTES.md
+
+  release:
+    name: Create draft GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-release
+          path: release
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: InstallStreet ${{ needs.build.outputs.tag }}
+          draft: true
+          prerelease: false
+          body_path: release/RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+          files: |
+            release/*.msi
+            release/*.zip
+            release/SHA256SUMS.txt

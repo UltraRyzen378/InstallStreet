@@ -1,13 +1,16 @@
-param([string]$Msi = 'dist\InstallStreet-1.0.5-x64.msi')
+param([string]$Msi = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$package = Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw | ConvertFrom-Json
+$config = Get-Content -LiteralPath (Join-Path $root 'electron-builder.json') -Raw | ConvertFrom-Json
+if (!$Msi) { $Msi = 'dist\InstallStreet-' + $package.version + '-x64.msi' }
 $path = [IO.Path]::GetFullPath((Join-Path $root $Msi))
 if (!(Test-Path -LiteralPath $path)) { throw "MSI not found: $path" }
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $db = $null
 try {
     $db = $installer.OpenDatabase($path, 0)
-    foreach ($entry in @(@('ProductName','InstallStreet'),@('ProductVersion','1.0.5'),@('UpgradeCode','{F10D21AD-8642-4E69-AF2C-48C87797F6C9}'))) {
+    foreach ($entry in @(@('ProductName','InstallStreet'),@('ProductVersion',$package.version),@('UpgradeCode',('{' + ([guid]$config.msi.upgradeCode).ToString().ToUpperInvariant() + '}')))) {
         $sql = 'SELECT `Value` FROM `Property` WHERE `Property` = ''' + $entry[0] + ''''
         $view = $db.OpenView($sql)
         $view.Execute()
@@ -33,11 +36,3 @@ try {
     if ($db) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($db) }
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer)
 }
-
-
-
-
-
-
-
-
