@@ -5,7 +5,7 @@ const { SetupWorkflow } = require('./setup-workflow');
 function fixture(approval) {
   const calls = [];
   const runner = new EventEmitter(); runner.busy = false;
-  runner.start = async mode => { calls.push('run:' + mode); runner.emit('state', { busy: false, completed: 21, total: 21, code: 0 }); return { code: 0, message: 'Done' }; };
+  runner.start = async mode => { calls.push('run:' + mode); runner.emit('state', { busy: false, completed: 24, total: 24, code: 0 }); return { code: 0, message: 'Done' }; };
   const profile = { save: async value => calls.push('profile:' + value.name) };
   const git = { apply: async value => calls.push('git:' + value.name) };
   const workflow = new SetupWorkflow(runner, profile, git, async () => { calls.push('warning'); return approval; });

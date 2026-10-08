@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -224,6 +224,44 @@ function Test-Python {
     $pip = & $exe -m pip --version 2>&1
     return ($LASTEXITCODE -eq 0 -and "$pip" -match '^pip \d+')
 }
+function Find-AppleDesktop([string]$Name) {
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        $relative = if ($Name -eq 'itunes') { 'iTunes\iTunes.exe' } else { 'Common Files\Apple\Internet Services\iCloud.exe' }
+        $target = Join-Path $base $relative
+        if (Test-Path -LiteralPath $target -PathType Leaf) { return $target }
+    }
+    return $null
+}
+function Find-iLoader {
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
+        foreach ($relative in @('iloader\iloader.exe','Programs\iloader\iloader.exe')) {
+            $target = Join-Path $base $relative
+            if (Test-Path -LiteralPath $target -PathType Leaf) { return $target }
+        }
+    }
+    return $null
+}
+function Install-DirectInstaller([string]$Url, [string]$Name, [string]$Sha256, [bool]$Apple = $false, [bool]$Msi = $false) {
+    $directory = Join-Path $taskDataRoot ('tmp\Installers\' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    $installer = Join-Path $directory $Name
+    & (Join-Path $env:SystemRoot 'System32\curl.exe') --fail --location --retry 3 --connect-timeout 30 --max-time 600 $Url --output $installer
+    if ($LASTEXITCODE -ne 0) { throw "$Name download failed: $LASTEXITCODE" }
+    if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $Sha256) { throw "$Name SHA256 verification failed." }
+    if ($Apple) {
+        $signature = Get-AuthenticodeSignature -LiteralPath $installer
+        if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Apple (Inc\.|Computer, Inc\.)') { throw "$Name Apple signature verification failed." }
+    }
+    if ($Msi) {
+        $arguments = '/i "' + $installer + '" /qn /norestart /L*v "' + (Join-Path $directory 'install.log') + '"'
+        $process = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\msiexec.exe') -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+    } else {
+        $process = Start-Process -FilePath $installer -ArgumentList '/quiet /norestart' -Wait -PassThru -WindowStyle Hidden
+    }
+    if ($process.ExitCode -notin @(0,3010)) { throw "$Name installation failed: $($process.ExitCode). Logs and installer: $directory" }
+    if ($process.ExitCode -eq 3010) { Write-Output "$Name requested a manual restart." }
+    Remove-Item -LiteralPath $installer
+}
 function Get-DesktopApps {
     $system = [Environment]::SystemDirectory
     foreach ($entry in @(@('PowerShell', 'WindowsPowerShell\v1.0\powershell.exe'), @('Command Prompt', 'cmd.exe'))) {
@@ -236,6 +274,12 @@ function Get-DesktopApps {
         $target = & $entry[1]
         if ($target) { [pscustomobject]@{ Name = $entry[0]; Target = $target; Arguments = $(if ($entry[0] -eq 'Roblox Player') { '-app' } else { '' }) } }
     }
+    foreach ($entry in @(@('iTunes','itunes'),@('iCloud','icloud'))) {
+        $target = Find-AppleDesktop $entry[1]
+        if ($target) { [pscustomobject]@{ Name = $entry[0]; Target = $target; Arguments = '' } }
+    }
+    $target = Find-iLoader
+    if ($target) { [pscustomobject]@{ Name = 'iLoader'; Target = $target; Arguments = '' } }
     foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
         $target = Join-Path $base 'Google\Chrome\Application\chrome.exe'
         if (Test-Path -LiteralPath $target) { [pscustomobject]@{ Name = 'Google Chrome'; Target = $target; Arguments = '' }; break }
@@ -286,6 +330,9 @@ function Test-Task {
         'iconsextract' { $target = Find-IconsExtract; return ($target -and (Test-DesktopShortcut 'IconsExtract' $target)) }
         'dimmer' { $target = Find-Dimmer; return ($target -and (Test-DesktopShortcut 'Dimmer' $target)) }
         'python' { return (Test-Python) }
+        'itunes' { return [bool](Find-AppleDesktop 'itunes') }
+        'icloud' { return [bool](Find-AppleDesktop 'icloud') }
+        'iloader' { return [bool](Find-iLoader) }
         'desktop-apps' { return (Test-DesktopApps) }
         'nvm-windows' { return (Test-NvmSetup) }
         'codex' { return [bool](Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1) }
@@ -330,6 +377,16 @@ try {
             if ($result -notin @(0,3010)) { throw "Chrome task failed: $result" }
         }
         'git' { Install-WingetPackage 'Git.Git' }
+        'itunes' {
+            Install-DirectInstaller 'https://secure-appldnld.apple.com/itunes12/082-23400-20250912-4099b0db-ac9e-4cad-a6e7-2851fb1ec220/iTunes64Setup.exe' 'iTunes64Setup.exe' '3C11EE5F937230BFB576705A143A5AF098D87EA087A1E0F9FAA3A892ADF24481' -Apple $true
+        }
+        'icloud' {
+            Write-Output 'Installing legacy standalone iCloud 7.18.0.22 from Apple. The current iCloud release is Store-only; no Store fallback will be used.'
+            Install-DirectInstaller 'https://secure-appldnld.apple.com/windows/061-91601-20200323-974a39d0-41fc-4761-b571-318b7d9205ed/iCloudSetup.exe' 'iCloudSetup.exe' '1100052F27C8EBF6EEA57B05682EB4A5A75EFD50D7ED1C943BD0108ACDC5E692' -Apple $true
+        }
+        'iloader' {
+            Install-DirectInstaller 'https://github.com/nab138/iloader/releases/download/v2.3.6/iloader-windows-x64.msi' 'iloader.msi' '6F0D038F74F60E2E036EFA17DD45B7CEBD3A4C61B226FF0F03CC8668BB5E3B2D' -Msi $true
+        }
         'gh' { Install-WingetPackage 'GitHub.cli' }
         'codex' {
             if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }

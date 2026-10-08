@@ -29,6 +29,9 @@ installations are checked and skipped. Opening InstallStreet or running
 | Python | Python 3.14 through `Python.Python.3.14`; existing working 3.14+ environments are skipped | `python` |
 | pip | Included with Python; repaired with `ensurepip` when needed | `python` |
 | NirSoft IconsExtract | Official NirSoft portable ZIP | `iconsextract` |
+| iTunes desktop | Apple standalone x64 installer 12.13.8.3, not Microsoft Store | `itunes` |
+| iCloud desktop | Legacy Apple standalone installer 7.18.0.22, not Microsoft Store | `icloud` |
+| iLoader | Official nab138/iloader GitHub release 2.3.6 x64 MSI; runs after iTunes | `iloader` |
 
 WinGet bootstrap also installs the **NuGet PowerShell package provider** and
 **Microsoft.WinGet.Client PowerShell module** when needed. WinGet repair and
@@ -36,6 +39,17 @@ application installers can install their required framework dependencies.
 StorageSense.exe is the bundled maintenance companion. Electron is bundled with InstallStreet itself, rather than installed as a
 separate application. **PowerShell and Command Prompt are existing Windows
 tools**; InstallStreet creates their desktop shortcuts.
+
+iTunes and iCloud use direct Apple downloads, with pinned SHA256 checks and
+Apple Authenticode signature verification before installation. Store versions do
+not count as the requested desktop installations. Apple's current iCloud download
+is Store-only; this task attempts legacy standalone iCloud 7.18.0.22 and reports an
+installation or verification failure if it is incompatible with the PC. It never
+falls back to the Store. [Apple's current download instructions](https://support.apple.com/en-us/103232).
+
+iLoader is downloaded only from [its official repository](https://github.com/nab138/iloader),
+with a pinned release checksum. InstallStreet installs the application; Apple ID
+sign-in, device pairing, and sideloading are performed by the user inside iLoader.
 
 ## Other setup tasks
 
@@ -155,8 +169,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.1.2-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.1.2-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.2.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.2.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;

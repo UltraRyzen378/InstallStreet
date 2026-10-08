@@ -34,6 +34,9 @@ internal static class InstallStreetApp
         new SetupTask("nvm-windows", "nvm-windows, Node.js and npm", "winget"),
         new SetupTask("dimmer", "Dimmer 2.0.1 and desktop shortcut"),
         new SetupTask("python", "Python 3.14 and pip", "winget"),
+        new SetupTask("itunes", "iTunes desktop (Apple installer)"),
+        new SetupTask("icloud", "iCloud desktop (legacy Apple installer)"),
+        new SetupTask("iloader", "iLoader", "itunes"),
         new SetupTask("remove-linkedin", "Remove installed LinkedIn Appx packages (all users)"),
         new SetupTask("consumer-features", "Disable promoted-app auto-installation"),
         new SetupTask("wallpaper", "Set desktop wallpaper"),
@@ -109,6 +112,9 @@ internal static class InstallStreetApp
             case "nvm-windows": relative = @"AppL\nvm-windows.dll"; break;
             case "dimmer": relative = @"AppL\Dimmer.dll"; break;
             case "python": relative = @"AppL\Python.dll"; break;
+            case "itunes": relative = @"AppL\iTunes.dll"; break;
+            case "icloud": relative = @"AppL\iCloud.dll"; break;
+            case "iloader": relative = @"AppL\iLoader.dll"; break;
             case "remove-linkedin": relative = @"VaultHouse\Guards\LinkedInRemoval.dll"; break;
             case "consumer-features": relative = @"DisplayCity\ConsumerFeatures.dll"; break;
             case "wallpaper": relative = @"DisplayCity\Wallpaper.dll"; break;

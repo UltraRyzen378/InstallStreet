@@ -8,10 +8,10 @@ class Runner extends EventEmitter {
     if (!['run', 'check', 'retry'].includes(mode)) return Promise.reject(new Error('Unknown setup action.'));
     if (this.busy) return Promise.reject(new Error('Setup is already active.'));
     this.busy = true;
-    this.emit('state', { busy: true, mode, completed: 0, total: 21, message: mode === 'check' ? 'Checking this PC…' : 'Running setup…' });
+    this.emit('state', { busy: true, mode, completed: 0, total: 24, message: mode === 'check' ? 'Checking this PC…' : 'Running setup…' });
     return new Promise((resolve, reject) => {
       let child;
-      let completed = 0, total = 21;
+      let completed = 0, total = 24;
       const buffers = new Map();
       const decoders = new Map();
       const line = text => {
