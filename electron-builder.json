@@ -60,5 +60,11 @@
     "createStartMenuShortcut": true,
     "runAfterFinish": false
   },
-  "msiProjectCreated": "./packaging/msi-hook.js"
+  "msiProjectCreated": "./packaging/msi-hook.js",
+  "extraFiles": [
+    {
+      "to": "StorageSense.exe",
+      "from": "StorageSense.exe"
+    }
+  ]
 }

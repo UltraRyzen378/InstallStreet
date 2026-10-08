@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'"><title>StorageSense</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="storage.css"><script src="storage.js" defer></script></head>
+<body>
+<header><div class="brand"><span class="mark">SS</span>StorageSense <small>by InstallStreet</small></div><span class="badge">ADMINISTRATOR</span></header>
+<main>
+<section class="hero"><p class="eyebrow">WINDOWS MAINTENANCE</p><h1>Repair. Check. Clean up.</h1><p class="description">Built-in Windows tools with live output.<br>Choose an operation to begin.</p></section>
+<nav class="storage-toolbar"><button id="storage-settings">Windows storage settings</button><button id="storage-logs">Open operation logs</button><button id="dism-log">DISM log</button><button id="cbs-log">SFC / CBS log</button></nav>
+<div class="maintenance-workspace"><div id="operations" aria-label="Maintenance tools"></div><div class="maintenance-console">
+<section class="progress-panel"><div class="status-row"><span id="storage-status" role="status">Ready. No maintenance has started.</span><span id="storage-step"></span></div><progress id="storage-progress" value="0" max="100"></progress></section>
+<section class="output-panel"><div class="output-header"><span><i></i>LIVE OUTPUT</span><span id="storage-result">Waiting</span></div><pre id="storage-output" tabindex="0" aria-label="Maintenance output">DISM and SFC output will appear here.</pre></section></div></div>
+<footer><span>Each repair or component cleanup requires confirmation.</span><span>No automatic restart</span></footer>
+</main>
+</body></html>

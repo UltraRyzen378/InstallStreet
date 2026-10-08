@@ -49,3 +49,5 @@ document.getElementById('logs').addEventListener('click', async () => {
 });
 
 
+
+document.getElementById('storage').addEventListener('click',async()=>{try{await window.installstreet.openStorage();}catch(error){status.textContent=error.message;}});

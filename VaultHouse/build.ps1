@@ -33,6 +33,7 @@ foreach ($module in @('__init__','AppL\init','DisplayCity\init','Files\__set__\a
 Compile 'workers\WhereAppL\whereappl.cs' 'workers\WhereAppL\whereappl.dll'
 Compile 'VaultHouse\Guards\LinkedInRemoval.cs' 'VaultHouse\Guards\LinkedInRemoval.dll' 'library' $false $true
 Compile 'VaultHouse\Guards\AdminRights.cs' 'VaultHouse\Guards\AdminRights.dll'
+Compile 'StorageSense\Launcher.cs' 'StorageSense.exe' 'winexe'
 Compile 'VaultHouse\Launcher.cs' 'InstallStreet.exe' 'winexe'
 Compile 'VaultHouse\InstallStreet.cs' 'InstallStreet.Cli.exe' 'exe'
 Compile 'VaultHouse\RunningHelper.cs' 'RunningHelper.exe' 'exe'
@@ -50,13 +51,3 @@ foreach ($artifact in $artifacts) {
     Move-Item -LiteralPath (Join-Path $stage $artifact) -Destination $destination
 }
 Write-Output ('Built ' + $artifacts.Count + ' artifacts.')
-
-
-
-
-
-
-
-
-
-

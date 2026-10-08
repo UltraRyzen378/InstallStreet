@@ -77,7 +77,7 @@ jobs:
         run: |
           & ./VaultHouse/verify-msi.ps1
           & ./VaultHouse/verify-zip.ps1
-          & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','InstallStreet.Cli.exe','RunningHelper.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe')
+          & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\StorageSense.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe')
 
       - name: Generate checksums and release notes
         run: |
@@ -91,6 +91,7 @@ jobs:
             '- MSI: install InstallStreet with desktop and Start menu shortcuts.',
             '- Portable ZIP: extract and run InstallStreet.exe.',
             '- Both bundle Electron and the task DLLs; no npm setup is needed.',
+            '- StorageSense.exe provides administrator-only Windows checks, repair, and supported cleanup; each operation is started explicitly.',
             '- Administrator access is required. Canceling UAC stops startup.',
             '- Setup starts only after clicking Run; it installs apps, changes Windows settings, and includes all-user LinkedIn Appx removal.',
             '- Git identity changes require a separate confirmation. gh authentication is unchanged.',

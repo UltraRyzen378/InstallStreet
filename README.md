@@ -33,7 +33,7 @@ installations are checked and skipped. Opening InstallStreet or running
 WinGet bootstrap also installs the **NuGet PowerShell package provider** and
 **Microsoft.WinGet.Client PowerShell module** when needed. WinGet repair and
 application installers can install their required framework dependencies.
-Electron is bundled with InstallStreet itself, rather than installed as a
+StorageSense.exe is the bundled maintenance companion. Electron is bundled with InstallStreet itself, rather than installed as a
 separate application. **PowerShell and Command Prompt are existing Windows
 tools**; InstallStreet creates their desktop shortcuts.
 
@@ -155,8 +155,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.0.5-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.0.5-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.1.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.1.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
@@ -239,3 +239,31 @@ package version and refuses to reuse a tag pointing at another commit. GitHub
 Actions must be enabled for the repository. The workflow uses the built-in
 GITHUB_TOKEN; no personal token or signing credentials are required. Build jobs
 have read-only repository access, and only the draft-release job can write.
+
+## StorageSense sub-application
+
+StorageSense.exe is the administrator-only Windows maintenance companion bundled
+with InstallStreet. Keep it beside InstallStreet.exe and the runtime. Open it
+directly, or click StorageSense in InstallStreet. It is separate from setup;
+clicking Run InstallStreet never starts repairs or cleanup.
+
+Available tools:
+
+- DISM CheckHealth, ScanHealth, and AnalyzeComponentStore.
+- DISM RestoreHealth, SFC verifyonly, and SFC scannow.
+- Repair Windows: DISM RestoreHealth followed by SFC; stops on failure or a
+  requested restart.
+- CHKDSK online scan of the Windows volume, without forced dismount/reboot.
+- DISM StartComponentCleanup without ResetBase.
+- Windows Disk Cleanup with its normal category-selection dialog.
+- Links to Windows storage settings, DISM/CBS logs, and per-operation output logs.
+
+Repair and component cleanup require confirmation. No operation starts on launch.
+Maintenance and application setup cannot run concurrently. Commands are a fixed
+allowlist; no arbitrary shell input is accepted. Output and percentage updates
+appear live. Command completion does not prove that every detected issue was
+repaired: review the output. Operation logs live under StorageSense/Logs in the
+application data folder. Repair downloads depend on Windows Update configuration.
+There is no automatic reboot, ResetBase, custom recursive file deletion, or
+unattended clearing of Downloads or the Recycle Bin. Native maintenance operations
+are tested with fixtures rather than run against the developer's Windows image.

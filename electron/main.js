@@ -7,6 +7,11 @@ const { createGitIdentity } = require('./git-identity');
 const { createProfileStore } = require('./gh-profile');
 const { SetupWorkflow } = require('./setup-workflow');
 const { isAdministrator, elevate, ensureAdministrator } = require('./admin');
+const { MaintenanceRunner, operation, publicCatalog } = require('./maintenance');
+const { spawn } = require('node:child_process');
+let storageRequested=process.argv.includes('--storage-sense');
+let storageWindow, maintenancePending=false, maintenanceLog;
+const maintenance=new MaintenanceRunner();
 const gitIdentity = createGitIdentity();
 
 const root = app.isPackaged ? path.join(process.resourcesPath, 'backend') : path.resolve(__dirname, '..');
@@ -17,12 +22,25 @@ app.setPath('userData', path.join(dataRoot, 'tmp', smoke ? 'electron-smoke-profi
 app.setPath('crashDumps', path.join(dataRoot, 'tmp', 'electron-crashes'));
 const runner = new Runner(root, undefined, dataRoot);
 let window, workflow;
+const storagePage=pathToFileURL(path.join(__dirname,'storage.html')).href;
+function openStorageWindow(){
+  if(!window){storageRequested=true;return;}
+  if(storageWindow && !storageWindow.isDestroyed()){storageWindow.show();storageWindow.focus();return;}
+  storageWindow=new BrowserWindow({width:1180,height:900,minWidth:800,minHeight:620,title:'StorageSense — Administrator',backgroundColor:'#101419',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+  storageWindow.removeMenu();storageWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));storageWindow.webContents.on('will-navigate',event=>event.preventDefault());
+  storageWindow.on('close',event=>{if(maintenance.busy||maintenancePending){event.preventDefault();storageWindow.webContents.send('maintenance:log','Wait for the active operation or confirmation to finish before closing.');}});
+  storageWindow.on('closed',()=>{storageWindow=null;if(window && !window.isDestroyed() && !window.isVisible())window.close();});
+  storageWindow.loadFile(path.join(__dirname,'storage.html'));
+}
+maintenance.on('log',text=>{if(maintenanceLog)maintenanceLog.write(text+String.fromCharCode(10));if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:log',text);});
+maintenance.on('state',state=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:state',state);});
+maintenance.on('progress',value=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:progress',value);});
 const profile = createProfileStore(dataRoot);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
+  app.on('second-instance', (_event,args) => { if(args.includes('--storage-sense')){openStorageWindow();return;}if(window){if(window.isMinimized())window.restore();window.show();window.focus();} });
   app.whenReady().then(async () => {
-    const allowed = await ensureAdministrator(isAdministrator, () => elevate(app.isPackaged ? process.execPath : path.join(root, 'InstallStreet.exe'), smoke));
+    const allowed = await ensureAdministrator(isAdministrator, () => elevate(app.isPackaged ? process.execPath : path.join(root, storageRequested ? 'StorageSense.exe' : 'InstallStreet.exe'), smoke));
     if (!allowed) { app.quit(); return; }
     window = new BrowserWindow({ width: 1100, height: 780, minWidth: 800, minHeight: 600, show: false, backgroundColor: '#101419', title: 'InstallStreet — Administrator', icon: path.join(root, 'VaultHouse/icons/.running/running.ico'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } });
     window.removeMenu();
@@ -39,7 +57,33 @@ else {
       return answer.response === 0;
     });
     ipcMain.handle('setup:git-status', async event => { validate(event); return { ...await gitIdentity.status(), profile: await profile.load() }; });
-    ipcMain.handle('setup:start', (event, mode, value) => { validate(event); return workflow.start(mode, value); });
+    ipcMain.handle('setup:start', (event, mode, value) => { validate(event);if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value); });
+    ipcMain.handle('storage:open',event=>{validate(event);openStorageWindow();});
+    const validateStorage=event=>{if(!storageWindow || event.sender!==storageWindow.webContents || event.senderFrame?.url!==storagePage)throw new Error('Invalid StorageSense request.');};
+    ipcMain.handle('maintenance:catalog',event=>{validateStorage(event);return publicCatalog();});
+    ipcMain.handle('maintenance:start',async(event,id)=>{
+      validateStorage(event);
+      const selected=operation(id);
+      if(workflow.busy||runner.busy||maintenance.busy||maintenancePending)throw new Error('Another setup or maintenance operation is active.');
+      maintenancePending=true;
+      try{
+        if(selected.confirmation){const answer=await dialog.showMessageBox(storageWindow,{type:'warning',title:selected.name,message:selected.confirmation,buttons:['Run operation','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
+        const logs=path.join(dataRoot,'StorageSense','Logs');await fs.mkdir(logs,{recursive:true});
+        const log=path.join(logs,new Date().toISOString().replaceAll(':','-')+'-'+id+'.log');
+        const handle=await fs.open(log,'wx');maintenanceLog=handle.createWriteStream();maintenanceLog.on('error',error=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:log','Log write failed: '+error.message);});
+        try{return await maintenance.start(id);}finally{await new Promise(resolve=>maintenanceLog.end(resolve));maintenanceLog=null;}
+      }finally{maintenancePending=false;}
+    });
+    ipcMain.handle('maintenance:open',async(event,id)=>{
+      validateStorage(event);
+      if(id==='settings'){await shell.openExternal('ms-settings:storagesense');return '';}
+      if(id==='logs'){const folder=path.join(dataRoot,'StorageSense','Logs');try{await fs.access(folder);}catch{return 'No operation logs yet.';}return shell.openPath(folder);}
+      const paths={dism:path.join(process.env.SystemRoot||'C:\\Windows','Logs/DISM/dism.log'),cbs:path.join(process.env.SystemRoot||'C:\\Windows','Logs/CBS/CBS.log')};
+      if(!paths[id])throw new Error('Unknown StorageSense log.');
+      try{await fs.access(paths[id]);}catch{return 'Windows has not created this log yet.';}
+      spawn(path.join(process.env.SystemRoot||'C:\\Windows','System32/notepad.exe'),[paths[id]],{shell:false,windowsHide:false,stdio:'ignore'}).on('error',error=>storageWindow.webContents.send('maintenance:log',error.message));
+      return '';
+    });
     ipcMain.handle('setup:logs', async event => {
       validate(event);
       const folder = path.join(dataRoot, 'StatusHQ');
@@ -48,9 +92,9 @@ else {
     });
     workflow.on('log', text => { if (!window.isDestroyed()) window.webContents.send('setup:log', text); });
     workflow.on('state', state => { if (!window.isDestroyed()) window.webContents.send('setup:state', state); });
-    window.on('close', event => { if (workflow.busy || runner.busy) { event.preventDefault(); window.webContents.send('setup:log', 'Setup is active. Wait for it to finish before closing.'); } });
+    window.on('close', event => { if (workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
     await window.loadFile(path.join(__dirname, 'index.html'));
-    if (!smoke) window.show();
+    if (!smoke) { if(storageRequested)openStorageWindow();else window.show(); }
     else {
       try {
         const canceled = await window.webContents.executeJavaScript("(async () => { const pending = requestIdentity({ name: 'Existing Git Author', email: 'existing@example.org', profile: null }); if (!document.getElementById('git-dialog').open) throw new Error('Profile dialog did not open'); document.getElementById('git-skip').click(); return await pending; })()");
@@ -70,16 +114,3 @@ else {
   }).catch(error => { console.error(error); if (!smoke) dialog.showErrorBox('InstallStreet', error.message); app.exit(1); });
   app.on('window-all-closed', () => app.quit());
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
