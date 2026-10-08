@@ -11,22 +11,26 @@ $taskDataRoot = $env:INSTALLSTREET_DATA_ROOT
 if (!$taskDataRoot) { $taskDataRoot = $taskRoot }
 
 function Find-Winget {
+    $candidates = @()
     $command = Get-Command winget.exe -ErrorAction SilentlyContinue
-    if ($command) { return $command.Source }
+    if ($command) { $candidates += $command.Source }
     $alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
-    if (Test-Path -LiteralPath $alias) { return $alias }
+    if (Test-Path -LiteralPath $alias) { $candidates += $alias }
     $package = Get-AppxPackage Microsoft.DesktopAppInstaller | Select-Object -First 1
     if ($package) {
         $candidate = Join-Path $package.InstallLocation 'winget.exe'
-        if (Test-Path -LiteralPath $candidate) { return $candidate }
+        if (Test-Path -LiteralPath $candidate) { $candidates += $candidate }
+    }
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        try {
+            $version = & $candidate --version 2>&1
+            if ($LASTEXITCODE -eq 0 -and "$version" -match 'v\d+\.\d+') { return $candidate }
+        } catch { }
     }
     return $null
 }
 function Test-Winget {
-    $exe = Find-Winget
-    if (!$exe) { return $false }
-    $version = & $exe --version 2>&1
-    return ($LASTEXITCODE -eq 0 -and "$version" -match 'v\d+\.\d+')
+    return [bool](Find-Winget)
 }
 function Test-Chrome {
     $dll = Join-Path $taskRoot 'AppL\GoogleChrome.dll'
@@ -314,8 +318,9 @@ try {
         'winget' {
             Write-Output 'Bootstrapping WinGet and its dependencies with Microsoft.WinGet.Client...'
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
-            Install-Module -Name Microsoft.WinGet.Client -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force -Confirm:$false | Out-Null
+            if (!(Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default }
+            Install-Module -Name Microsoft.WinGet.Client -Scope CurrentUser -Repository PSGallery -Force -AllowClobber -Confirm:$false
             Import-Module Microsoft.WinGet.Client
             Repair-WinGetPackageManager -Force -Latest
         }

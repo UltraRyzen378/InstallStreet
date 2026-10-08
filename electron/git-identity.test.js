@@ -1,6 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGitIdentity, validateIdentity } = require('./git-identity');
+test('fresh PC without Git or gh can reach setup without preinstalled developer tools',async()=>{
+  const execute=async()=>{const error=new Error('not installed');error.code='ENOENT';throw error;};
+  const identity=createGitIdentity(execute,()=>false,{SystemRoot:'C:\\Windows',PATH:'C:\\Windows\\System32'});
+  assert.deepEqual(await identity.status(),{gitInstalled:false,ghInstalled:false,name:'',email:''});
+});
 test('validates identity before executing any Git command', async () => {
   let calls = 0;
   const identity = createGitIdentity(async () => { calls++; return { stdout: '' }; }, () => false, {});

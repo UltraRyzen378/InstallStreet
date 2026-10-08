@@ -77,6 +77,7 @@ jobs:
         run: |
           & ./VaultHouse/verify-msi.ps1
           & ./VaultHouse/verify-zip.ps1
+          & ./VaultHouse/verify-fresh-pc.ps1
           & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\StorageSense.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe')
 
       - name: Generate checksums and release notes

@@ -19,7 +19,7 @@ public static class ScriptTaskRuntime
         string bootstrap = "$ProgressPreference = 'SilentlyContinue'; try { & ([scriptblock]::Create([Console]::In.ReadToEnd())); if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE } } catch { [Console]::Error.WriteLine($_); exit 1 }";
         string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(bootstrap));
         ProcessStartInfo start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"),
-            "-NoLogo -NoProfile -NonInteractive -OutputFormat Text -EncodedCommand " + encoded);
+            "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand " + encoded);
         string encodedRoot = Convert.ToBase64String(Encoding.Unicode.GetBytes(Path.GetFullPath(root)));
         script = script.Replace("$taskRoot = $env:INSTALLSTREET_TASK_ROOT", "$taskRoot = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('" + encodedRoot + "'))");
         return Capture(start, "& {\n" + script + "\n} -Task '" + task + "' -Mode '" + mode + "'", output);

@@ -155,13 +155,37 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.1.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.1.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.1.2-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.1.2-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
 it does not automatically run app-installation tasks. Open InstallStreet and run
 setup when ready. Actual task installation still requires its downloads/network.
+
+### Fresh Windows PCs
+
+Use the release MSI or extract the entire portable ZIP on Windows 11 x64 (Intel
+or AMD). Do not copy only InstallStreet.exe or StorageSense.exe, and do not use
+the small source-development launcher from the repository as a release.
+Visual Studio, Visual C++ build tools, Git, gh, Node.js, Python, a .NET SDK, and
+PowerShell 7 are not prerequisites. The backend uses Windows' built-in .NET
+Framework 4.x and Windows PowerShell 5.1. Administrator permission and internet
+access are required for setup. Microsoft Store access is needed for Codex.
+Native ARM64 and 32-bit releases are not currently provided.
+
+WinGet is detected independently of PATH and bootstrapped when missing. The
+bootstrap installs its NuGet provider and Microsoft.WinGet.Client module and
+registers the default PowerShell Gallery repository if absent. Task processes
+use a process-only execution-policy override; they do not change the user's or
+machine's saved execution policy. Organization-enforced policies can still block
+setup and are reported as failures.
+
+`VaultHouse/verify-fresh-pc.ps1` checks packaged runtime assets and backend
+assemblies, then probes the bundled Electron/Node runtime with a Windows-only
+PATH, cleared developer environment variables, and missing Git/gh fixtures.
+Release builds run this check. It does not install apps or run maintenance, and
+it is a dependency-isolation check rather than a clean Windows VM test.
 
 Packaged application logs, downloads, and profile data are kept in
 %APPDATA%/InstallStreet so installation files can remain read-only. Portable here
