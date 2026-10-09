@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -241,6 +241,13 @@ function Find-iLoader {
     }
     return $null
 }
+function Find-VeraCrypt {
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        $target = Join-Path $base 'VeraCrypt\VeraCrypt.exe'
+        if (Test-Path -LiteralPath $target -PathType Leaf) { return $target }
+    }
+    return $null
+}
 function Install-DirectInstaller([string]$Url, [string]$Name, [string]$Sha256, [bool]$Apple = $false, [bool]$Msi = $false) {
     $directory = Join-Path $taskDataRoot ('tmp\Installers\' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -280,6 +287,8 @@ function Get-DesktopApps {
     }
     $target = Find-iLoader
     if ($target) { [pscustomobject]@{ Name = 'iLoader'; Target = $target; Arguments = '' } }
+    $target = Find-VeraCrypt
+    if ($target) { [pscustomobject]@{ Name = 'VeraCrypt'; Target = $target; Arguments = '' } }
     foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
         $target = Join-Path $base 'Google\Chrome\Application\chrome.exe'
         if (Test-Path -LiteralPath $target) { [pscustomobject]@{ Name = 'Google Chrome'; Target = $target; Arguments = '' }; break }
@@ -333,6 +342,7 @@ function Test-Task {
         'itunes' { return [bool](Find-AppleDesktop 'itunes') }
         'icloud' { return [bool](Find-AppleDesktop 'icloud') }
         'iloader' { return [bool](Find-iLoader) }
+        'veracrypt' { return [bool](Find-VeraCrypt) }
         'desktop-apps' { return (Test-DesktopApps) }
         'nvm-windows' { return (Test-NvmSetup) }
         'codex' { return [bool](Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1) }
@@ -377,6 +387,7 @@ try {
             if ($result -notin @(0,3010)) { throw "Chrome task failed: $result" }
         }
         'git' { Install-WingetPackage 'Git.Git' }
+        'veracrypt' { Install-WingetPackage 'IDRIX.VeraCrypt' }
         'itunes' {
             Install-DirectInstaller 'https://secure-appldnld.apple.com/itunes12/082-23400-20250912-4099b0db-ac9e-4cad-a6e7-2851fb1ec220/iTunes64Setup.exe' 'iTunes64Setup.exe' '3C11EE5F937230BFB576705A143A5AF098D87EA087A1E0F9FAA3A892ADF24481' -Apple $true
         }

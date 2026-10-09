@@ -151,7 +151,7 @@ else {
         const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check'); })()");
         if (result.code !== 0) throw new Error('Read-only backend check failed.');
         await new Promise(resolve => setTimeout(resolve, 300));
-        const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '24 / 24 tasks' && !document.getElementById('run').disabled" );
+        const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '25 / 25 tasks' && !document.getElementById('run').disabled" );
         if (!complete) throw new Error('Renderer did not finish the read-only check.');
         const screenshot = await window.webContents.capturePage();
         await fs.mkdir(path.join(dataRoot, 'tmp'), { recursive: true });

@@ -22,7 +22,7 @@ class SetupWorkflow extends EventEmitter {
       if (this.identityPending) {
         try { await this.git.apply(identity); this.emit('log', 'Git global author name and email saved and verified.'); }
         catch (error) { this.emit('log', 'Git identity could not be fully saved: ' + error.message); outcome.code = 1; outcome.message = 'Setup finished, but Git configuration failed. Review the output.'; }
-        this.emit('state', { busy: false, mode, completed: 24, total: 24, code: outcome.code, message: outcome.message });
+        this.emit('state', { busy: false, mode, completed: 25, total: 25, code: outcome.code, message: outcome.message });
       }
       return outcome;
     } finally { this.busy = false; this.identityPending = false; }

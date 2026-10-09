@@ -32,6 +32,7 @@ installations are checked and skipped. Opening InstallStreet or running
 | iTunes desktop | Apple standalone x64 installer 12.13.8.3, not Microsoft Store | `itunes` |
 | iCloud desktop | Legacy Apple standalone installer 7.18.0.22, not Microsoft Store | `icloud` |
 | iLoader | Official nab138/iloader GitHub release 2.3.6 x64 MSI; runs after iTunes | `iloader` |
+| VeraCrypt | `IDRIX.VeraCrypt` through WinGet; includes a desktop shortcut | `veracrypt` |
 
 WinGet bootstrap also installs the **NuGet PowerShell package provider** and
 **Microsoft.WinGet.Client PowerShell module** when needed. WinGet repair and
@@ -169,8 +170,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.3.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.3.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.3.1-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.3.1-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
