@@ -1,0 +1,109 @@
+{
+  "attribution": "Icons by Icons8 — https://icons8.com/",
+  "license": "Icons8 free PNG assets (96px) with visible linked attribution. Publisher marks identify the included applications.",
+  "sources": [
+    {
+      "app": "chrome",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/chrome.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "python",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/python.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "rufus",
+      "kind": "publisher application icon",
+      "source": "rufus.exe"
+    },
+    {
+      "app": "gh",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/github.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "icloud",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/icloud.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "winrar",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/winrar.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "roblox",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/roblox.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "iconsextract",
+      "kind": "publisher application icon",
+      "source": "iconsextract.exe"
+    },
+    {
+      "app": "vscode",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/visual-studio-code-2019.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "winget",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/windows-11.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "dotnet10",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/net-framework.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "dimmer",
+      "kind": "publisher application icon",
+      "source": "dimmer.exe"
+    },
+    {
+      "app": "itunes",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/itunes.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "nvm-windows",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/nodejs.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "codex",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/chatgpt.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "iloader",
+      "kind": "publisher repository logo",
+      "source": "https://github.com/nab138/iloader/blob/main/iloader.svg"
+    },
+    {
+      "app": "git",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/git.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "veracrypt",
+      "kind": "publisher application icon",
+      "source": "veracrypt.exe"
+    }
+  ]
+}

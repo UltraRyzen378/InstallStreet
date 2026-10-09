@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, net } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, net, nativeTheme } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -80,12 +80,15 @@ else {
   app.whenReady().then(async () => {
     const allowed = await ensureAdministrator(isAdministrator, () => elevate(app.isPackaged ? process.execPath : path.join(root, storageRequested ? 'StorageSense.exe' : 'InstallStreet.exe'), smoke));
     if (!allowed) { app.quit(); return; }
+    nativeTheme.themeSource='dark';
     window = new BrowserWindow({ width: 1100, height: 780, minWidth: 800, minHeight: 600, show: false, backgroundColor: '#101419', title: 'InstallStreet — Administrator', icon: path.join(root, 'VaultHouse/icons/.running/running.ico'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } });
     window.removeMenu();
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     const validate = event => { if (event.sender !== window.webContents || event.senderFrame?.url !== page) throw new Error('Invalid application request.'); };
+    ipcMain.handle('brand:icons8',event=>{validate(event);return shell.openExternal('https://icons8.com/');});
+    ipcMain.handle('setup:close',event=>{validate(event);window.close();});
     workflow = new SetupWorkflow(runner, profile, gitIdentity, async identity => {
       const answer = await dialog.showMessageBox(window, {
         type: 'warning', title: 'Change Git configuration?', message: 'Also use this profile for Git?',

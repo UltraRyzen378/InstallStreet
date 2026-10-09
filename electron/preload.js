@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('installstreet', {
   installUpdate: () => ipcRenderer.invoke('updates:install'),
   onUpdateState: callback => {const listener=(_event,value)=>callback(value);ipcRenderer.on('updates:state',listener);return ()=>ipcRenderer.removeListener('updates:state',listener);},
   openStorage: () => ipcRenderer.invoke('storage:open'),
+  openIcons8: () => ipcRenderer.invoke('brand:icons8'),
+  closeSetup: () => ipcRenderer.invoke('setup:close'),
   maintenanceCatalog: () => ipcRenderer.invoke('maintenance:catalog'),
   maintenanceStart: id => ipcRenderer.invoke('maintenance:start',id),
   maintenanceOpen: id => ipcRenderer.invoke('maintenance:open',id),

@@ -4,21 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
-  <title>InstallStreet</title>
+  <title>InstallStreet Setup</title>
   <link rel="stylesheet" href="styles.css">
   <script src="renderer.js" defer></script>
   <script src="update-renderer.js" defer></script>
+  <script src="app-roster.js" defer></script>
 </head>
-<body>
-  <header><div class="brand"><span class="mark">IS</span>InstallStreet</div><div class="header-tools"><button id="settings" class="quiet">Settings</button><span class="badge">ADMINISTRATOR</span></div></header>
-  <main>
-    <section class="hero"><p class="eyebrow">YOUR PC. READY TO GO.</p><h1>Set up this PC.</h1><p class="description">Apps, developer tools, and Windows settings.<br>Every task is included on every run.</p>
-      <div class="actions"><button id="run" class="primary">Run InstallStreet <span aria-hidden="true">↗</span></button><button id="check">Check only</button><button id="retry">Retry setup</button><button id="logs" class="quiet">Open logs</button><button id="storage" class="quiet">StorageSense</button></div>
-    </section>
-    <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 / 26 tasks</span></div><progress id="progress" value="0" max="26"></progress></section>
-    <section class="output-panel"><div class="output-header"><span><i id="activity"></i>LIVE OUTPUT</span><span id="result">Waiting</span></div><pre id="output" tabindex="0" aria-label="Task output">Output will appear here when setup starts.</pre></section>
-    <footer><span>Existing setups are checked and skipped.</span><span>InstallStreet · Local setup</span></footer>
+<body class="setup-window">
+  <header><div class="brand"><span class="mark">IS</span><div>InstallStreet Setup<small>Application installation and Windows configuration</small></div></div><div class="header-tools"><button id="settings" class="quiet">Settings</button><span class="badge">ADMINISTRATOR</span></div></header>
+  <main class="wizard-shell">
+    <aside class="wizard-sidebar" aria-label="Setup stages"><span class="sidebar-mark" aria-hidden="true">IS</span><h2>InstallStreet</h2><p>Your computer.<br>Your setup.</p><ol><li data-wizard-step="1" class="active"><span>1</span>Ready to install</li><li data-wizard-step="2"><span>2</span>Installation</li><li data-wizard-step="3"><span>3</span>Results</li></ol><div class="sidebar-note">All applications are included.<br>Existing installations are checked and skipped.</div></aside>
+    <div class="wizard-content">
+      <section class="hero"><h1 id="wizard-title">Ready to install</h1><p id="wizard-description" class="description">InstallStreet will install the applications below and apply your Windows setup.</p></section>
+      <section class="roster-panel" aria-labelledby="roster-title"><div class="section-heading"><h2 id="roster-title">Included applications</h2><span>18 applications · All included</span></div><ul id="app-roster" aria-label="Included applications"></ul></section>
+      <div class="setup-tools"><button id="logs" class="quiet">View logs</button><button id="storage" class="quiet">StorageSense</button><span>Installation begins when you choose Install.</span></div>
+      <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 / 26 tasks</span></div><progress id="progress" value="0" max="26"></progress></section>
+      <section class="output-panel"><div class="output-header"><span><i id="activity"></i>SETUP DETAILS</span><span id="result">Waiting</span></div><pre id="output" tabindex="0" aria-label="Task output">Setup output will appear here.</pre></section>
+    </div>
   </main>
+  <footer class="wizard-footer"><button id="icons8-credit" class="quiet">Icons by Icons8</button><div class="wizard-buttons"><button id="check">Check only</button><button id="retry">Retry setup</button><button id="run" class="primary">Install</button><button id="finish">Close</button></div></footer>
   <dialog id="git-dialog" aria-labelledby="git-title">
     <form id="git-form">
       <p class="eyebrow">GITHUB CLI SETUP</p><h2 id="git-title">Save your GitHub profile?</h2>

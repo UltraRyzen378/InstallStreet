@@ -29,8 +29,12 @@ const missing = async () => { const error=new Error('not installed');error.code=
  const state=await createGitIdentity(missing,()=>false,process.env).status();
  assert.deepEqual(state,{gitInstalled:false,ghInstalled:false,name:'',email:''});
  assert.ok(publicCatalog().some(item=>item.id==='run-all'));
- for(const name of ['index.html','storage.html','preload.js','renderer.js','storage.js','styles.css','storage.css','update-renderer.js','updates.js','update-settings.js'])
+ for(const name of ['index.html','storage.html','preload.js','renderer.js','storage.js','styles.css','storage.css','update-renderer.js','updates.js','update-settings.js','app-roster.js'])
    assert.ok(fs.readFileSync(path.join(archive,'electron',name)).length);
+ const source=fs.readFileSync(path.join(archive,'electron/assets/apps/SOURCES.json'),'utf8');
+ const logos=JSON.parse(source).sources;
+ assert.equal(logos.length,18);
+ for(const logo of logos){const file=path.join(archive,'electron/assets/apps',logo.app+(logo.app==='iloader'?'.svg':'.png'));assert.ok(fs.readFileSync(file).length);}
  console.log('Fresh-PC dependency probe passed: bundled Electron/Node/Chromium, UI assets, and missing Git/gh handling.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '@ | Set-Content -LiteralPath $probe -Encoding UTF8

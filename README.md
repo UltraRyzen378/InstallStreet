@@ -5,6 +5,12 @@ the complete setup; tasks that are already configured are skipped. Retry setup
 attempts the complete setup again. Check only performs detection without changes.
 Open logs opens StatusHQ. There is no task selection or deselection.
 
+The setup window uses a dark Windows Installer style, with setup stages, a
+read-only application roster, overall progress, installation details, and bottom
+Install/Finish controls. Every application stays included. Logos are bundled
+locally so the window works offline; the visible Icons8 credit links to the
+provider. Icon sources are documented in electron/assets/apps/SOURCES.json.
+
 ## Applications installed
 
 Clicking **Run InstallStreet** attempts the full setup below. Existing working
@@ -175,8 +181,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.3.5-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.3.5-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.4.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.4.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
