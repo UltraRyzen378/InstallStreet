@@ -25,7 +25,7 @@ installations are checked and skipped. Opening InstallStreet or running
 | nvm-windows | `CoreyButler.NVMforWindows` through WinGet | `nvm-windows` |
 | Node.js | LTS version installed and activated through nvm-windows | `nvm-windows` |
 | npm | Bundled with the Node.js version installed by nvm-windows | `nvm-windows` |
-| Dimmer | Nelson Pires 2.0.1, from the specified official ZIP | `dimmer` |
+| Dimmer | Nelson Pires 2.0.1, from the specified official ZIP; starts after installation | `dimmer` |
 | Python | Python 3.14 through `Python.Python.3.14`; existing working 3.14+ environments are skipped | `python` |
 | pip | Included with Python; repaired with `ensurepip` when needed | `python` |
 | NirSoft IconsExtract | Official NirSoft portable ZIP | `iconsextract` |
@@ -171,8 +171,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.3.3-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.3.3-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.3.4-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.3.4-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
@@ -268,7 +268,10 @@ Windows promotion or future feature-update changes.
 
 Dimmer 2.0.1 uses the exact supplied ZIP URL, preserves its bundled documentation,
 installs under %LOCALAPPDATA%\InstallStreet\Apps\Dimmer, and creates a desktop
-shortcut. It is not launched or added to startup automatically.
+shortcut. After installation and shortcut creation, InstallStreet verifies the
+binary and starts Dimmer in the background. An existing Dimmer process in the
+current Windows session is reused. Check only and already-configured tasks do
+not launch it. This does not add Dimmer to Windows startup.
 Python uses Python.Python.3.14 and verifies the interpreter and pip. Existing
 working Python 3.14+ environments are skipped; missing pip is repaired.
 LinkedInRemoval.dll runs Get-AppxPackage -AllUsers '*LinkedIn*' | Remove-AppxPackage

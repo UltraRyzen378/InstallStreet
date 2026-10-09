@@ -199,6 +199,16 @@ function Find-Dimmer {
     }
     return $null
 }
+function Start-Dimmer([string]$Target) {
+    if (!(Test-DimmerBinary $Target)) { throw 'Dimmer could not be verified before launch.' }
+    $session = (Get-Process -Id $PID).SessionId
+    if (Get-Process -Name Dimmer -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $session }) {
+        Write-Output 'Dimmer is already running in this Windows session; no second instance was started.'
+        return
+    }
+    $process = Start-Process -FilePath $Target -WorkingDirectory (Split-Path $Target -Parent) -WindowStyle Hidden -PassThru
+    Write-Output "Dimmer started after installation (PID $($process.Id))."
+}
 function Find-Python {
     Refresh-TaskEnvironment
     $paths = @("$env:LOCALAPPDATA\Programs\Python\Python314\python.exe", "$env:ProgramFiles\Python314\python.exe")
@@ -476,6 +486,7 @@ try {
                 $target = Join-Path $destination 'Dimmer.exe'
             }
             New-DesktopShortcut 'Dimmer' $target
+            Start-Dimmer $target
         }
         'python' {
             $exe = Find-Python
