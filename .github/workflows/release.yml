@@ -68,6 +68,7 @@ jobs:
           npm test
           if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
           & ./VaultHouse/test-dimmer-launch.ps1
+          & ./VaultHouse/test-desktop-shortcuts.ps1
 
       - name: Build MSI and portable ZIP
         run: |

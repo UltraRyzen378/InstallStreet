@@ -117,23 +117,40 @@ function Find-Rufus {
     }
     return $null
 }
-function Test-DesktopShortcut([string]$Name, [string]$Target, [string]$Desktop = [Environment]::GetFolderPath('DesktopDirectory'), [string]$Arguments = '', [string]$WorkingDirectory = '') {
-    if (!$Target -or !$Desktop) { return $false }
-    $file = Join-Path $Desktop ($Name + '.lnk')
-    if (!(Test-Path -LiteralPath $file)) { return $false }
+function Find-DesktopShortcut([string]$Target, [string]$Desktop, [string]$Arguments = '', [string]$WorkingDirectory = '') {
+    if (!$Target -or !$Desktop) { return $null }
+    $folders = @($Desktop)
+    $userDesktop = [Environment]::GetFolderPath('DesktopDirectory')
+    if ($userDesktop -and [IO.Path]::GetFullPath($Desktop).TrimEnd('\').Equals([IO.Path]::GetFullPath($userDesktop).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) {
+        $common = [Environment]::GetFolderPath('CommonDesktopDirectory')
+        if ($common) { $folders += $common }
+    }
     $shell = $null; $shortcut = $null
     try {
         $shell = New-Object -ComObject WScript.Shell
-        $shortcut = $shell.CreateShortcut($file)
-        return ((!$WorkingDirectory -or ($shortcut.WorkingDirectory -and [IO.Path]::GetFullPath($shortcut.WorkingDirectory).Equals([IO.Path]::GetFullPath($WorkingDirectory), [StringComparison]::OrdinalIgnoreCase))) -and $shortcut.Arguments -eq $Arguments -and $shortcut.TargetPath -and [IO.Path]::GetFullPath($shortcut.TargetPath).Equals([IO.Path]::GetFullPath($Target), [StringComparison]::OrdinalIgnoreCase))
+        foreach ($folder in ($folders | Select-Object -Unique)) {
+            foreach ($file in (Get-ChildItem -LiteralPath $folder -Filter '*.lnk' -File -ErrorAction SilentlyContinue)) {
+                try {
+                    $shortcut = $shell.CreateShortcut($file.FullName)
+                    if ((!$WorkingDirectory -or ($shortcut.WorkingDirectory -and [IO.Path]::GetFullPath($shortcut.WorkingDirectory).TrimEnd('\').Equals([IO.Path]::GetFullPath($WorkingDirectory).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase))) -and $shortcut.Arguments -eq $Arguments -and $shortcut.TargetPath -and [IO.Path]::GetFullPath($shortcut.TargetPath).Equals([IO.Path]::GetFullPath($Target), [StringComparison]::OrdinalIgnoreCase)) { return $file.FullName }
+                } catch { } finally {
+                    if ($shortcut) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut); $shortcut = $null }
+                }
+            }
+        }
+        return $null
     } finally {
         if ($shortcut) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) }
         if ($shell) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
     }
 }
+function Test-DesktopShortcut([string]$Name, [string]$Target, [string]$Desktop = [Environment]::GetFolderPath('DesktopDirectory'), [string]$Arguments = '', [string]$WorkingDirectory = '') {
+    return [bool](Find-DesktopShortcut $Target $Desktop $Arguments $WorkingDirectory)
+}
 function New-DesktopShortcut([string]$Name, [string]$Target, [string]$Desktop = [Environment]::GetFolderPath('DesktopDirectory'), [string]$Arguments = '', [string]$WorkingDirectory = '') {
     if (!$Target -or !(Test-Path -LiteralPath $Target -PathType Leaf)) { throw "Cannot create $Name shortcut: executable was not found." }
     if (!$Desktop) { throw 'The desktop folder could not be located.' }
+    if (Test-DesktopShortcut $Name $Target $Desktop $Arguments $WorkingDirectory) { Write-Output "$Name uses an existing desktop shortcut."; return }
     if (!(Test-Path -LiteralPath $Desktop)) { New-Item -ItemType Directory -Path $Desktop -Force | Out-Null }
     $shell = $null; $shortcut = $null
     try {

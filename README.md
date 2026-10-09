@@ -41,6 +41,10 @@ application installers can install their required framework dependencies.
 StorageSense.exe is the bundled maintenance companion. Electron is bundled with InstallStreet itself, rather than installed as a
 separate application. **PowerShell and Command Prompt are existing Windows
 tools**; InstallStreet creates their desktop shortcuts.
+Desktop shortcut checks inspect both the current user's desktop (including
+OneDrive) and the Public desktop. Matching installer-created shortcuts are reused
+by executable and arguments, even if their names differ, so desktopn does not
+create an additional icon for the same application.
 
 iTunes and iCloud use direct Apple downloads, with pinned SHA256 checks and
 Apple Authenticode signature verification before installation. Store versions do
@@ -171,8 +175,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.3.4-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.3.4-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.3.5-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.3.5-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
