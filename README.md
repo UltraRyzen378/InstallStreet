@@ -30,7 +30,7 @@ installations are checked and skipped. Opening InstallStreet or running
 | pip | Included with Python; repaired with `ensurepip` when needed | `python` |
 | NirSoft IconsExtract | Official NirSoft portable ZIP | `iconsextract` |
 | iTunes desktop | Apple standalone x64 installer 12.13.8.3, not Microsoft Store | `itunes` |
-| iCloud desktop | Legacy Apple standalone installer 7.18.0.22, not Microsoft Store | `icloud` |
+| iCloud desktop | Legacy Apple standalone installer 7.21.0.23, not Microsoft Store | `icloud` |
 | iLoader | Official nab138/iloader GitHub release 2.3.6 x64 MSI; runs after iTunes | `iloader` |
 | VeraCrypt | `IDRIX.VeraCrypt` through WinGet; includes a desktop shortcut | `veracrypt` |
 | WinRAR | `RARLab.WinRAR` through WinGet, official RARLab English installer; includes a desktop shortcut | `winrar` |
@@ -45,7 +45,7 @@ tools**; InstallStreet creates their desktop shortcuts.
 iTunes and iCloud use direct Apple downloads, with pinned SHA256 checks and
 Apple Authenticode signature verification before installation. Store versions do
 not count as the requested desktop installations. Apple's current iCloud download
-is Store-only; this task attempts legacy standalone iCloud 7.18.0.22 and reports an
+is Store-only; this task attempts legacy standalone iCloud 7.21.0.23 and reports an
 installation or verification failure if it is incompatible with the PC. It never
 falls back to the Store. [Apple's current download instructions](https://support.apple.com/en-us/103232).
 
@@ -171,8 +171,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.3.2-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.3.2-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.3.3-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.3.3-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;

@@ -272,7 +272,8 @@ function Install-DirectInstaller([string]$Url, [string]$Name, [string]$Sha256, [
         $arguments = '/i "' + $installer + '" /qn /norestart /L*v "' + (Join-Path $directory 'install.log') + '"'
         $process = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\msiexec.exe') -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
     } else {
-        $process = Start-Process -FilePath $installer -ArgumentList '/quiet /norestart' -Wait -PassThru -WindowStyle Hidden
+        $arguments = '/quiet /norestart /log "' + (Join-Path $directory 'install.log') + '"'
+        $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
     }
     if ($process.ExitCode -notin @(0,3010)) { throw "$Name installation failed: $($process.ExitCode). Logs and installer: $directory" }
     if ($process.ExitCode -eq 3010) { Write-Output "$Name requested a manual restart." }
@@ -405,8 +406,8 @@ try {
             Install-DirectInstaller 'https://secure-appldnld.apple.com/itunes12/082-23400-20250912-4099b0db-ac9e-4cad-a6e7-2851fb1ec220/iTunes64Setup.exe' 'iTunes64Setup.exe' '3C11EE5F937230BFB576705A143A5AF098D87EA087A1E0F9FAA3A892ADF24481' -Apple $true
         }
         'icloud' {
-            Write-Output 'Installing legacy standalone iCloud 7.18.0.22 from Apple. The current iCloud release is Store-only; no Store fallback will be used.'
-            Install-DirectInstaller 'https://secure-appldnld.apple.com/windows/061-91601-20200323-974a39d0-41fc-4761-b571-318b7d9205ed/iCloudSetup.exe' 'iCloudSetup.exe' '1100052F27C8EBF6EEA57B05682EB4A5A75EFD50D7ED1C943BD0108ACDC5E692' -Apple $true
+            Write-Output 'Installing legacy standalone iCloud 7.21.0.23 from Apple. The current iCloud release is Store-only; no Store fallback will be used.'
+            Install-DirectInstaller 'https://updates.cdn-apple.com/2020/windows/001-39935-20200911-1A70AA56-F448-11EA-8CC0-99D41950005E/iCloudSetup.exe' 'iCloudSetup.exe' '4CFD20D13CDCE2B5C435F2DDAF4EE4C81D976461846BF3B954E8AF6CBCDEB9F7' -Apple $true
         }
         'iloader' {
             Install-DirectInstaller 'https://github.com/nab138/iloader/releases/download/v2.3.6/iloader-windows-x64.msi' 'iloader.msi' '6F0D038F74F60E2E036EFA17DD45B7CEBD3A4C61B226FF0F03CC8668BB5E3B2D' -Msi $true
