@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -83,10 +83,12 @@ function Test-WingetPackage([string]$Id) {
     $result = & $exe list --id $Id --exact --source winget --disable-interactivity 2>&1
     return ($LASTEXITCODE -eq 0 -and "$result" -match [regex]::Escape($Id))
 }
-function Install-WingetPackage([string]$Id) {
+function Install-WingetPackage([string]$Id, [string]$Locale = '') {
     if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }
     $exe = Find-Winget
-    & $exe install --id $Id --exact --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity
+    $arguments = @('install','--id',$Id,'--exact','--source','winget','--accept-package-agreements','--accept-source-agreements','--disable-interactivity')
+    if ($Locale) { $arguments += @('--locale',$Locale) }
+    & $exe @arguments
     if ($LASTEXITCODE -notin @(0,3010)) { throw "$Id installation failed: $LASTEXITCODE" }
     if ($LASTEXITCODE -eq 3010) { Write-Output "$Id requested a restart." }
 }
@@ -248,6 +250,13 @@ function Find-VeraCrypt {
     }
     return $null
 }
+function Find-WinRAR {
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        $target = Join-Path $base 'WinRAR\WinRAR.exe'
+        if (Test-Path -LiteralPath $target -PathType Leaf) { return $target }
+    }
+    return $null
+}
 function Install-DirectInstaller([string]$Url, [string]$Name, [string]$Sha256, [bool]$Apple = $false, [bool]$Msi = $false) {
     $directory = Join-Path $taskDataRoot ('tmp\Installers\' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -289,6 +298,8 @@ function Get-DesktopApps {
     if ($target) { [pscustomobject]@{ Name = 'iLoader'; Target = $target; Arguments = '' } }
     $target = Find-VeraCrypt
     if ($target) { [pscustomobject]@{ Name = 'VeraCrypt'; Target = $target; Arguments = '' } }
+    $target = Find-WinRAR
+    if ($target) { [pscustomobject]@{ Name = 'WinRAR'; Target = $target; Arguments = '' } }
     foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
         $target = Join-Path $base 'Google\Chrome\Application\chrome.exe'
         if (Test-Path -LiteralPath $target) { [pscustomobject]@{ Name = 'Google Chrome'; Target = $target; Arguments = '' }; break }
@@ -343,6 +354,7 @@ function Test-Task {
         'icloud' { return [bool](Find-AppleDesktop 'icloud') }
         'iloader' { return [bool](Find-iLoader) }
         'veracrypt' { return [bool](Find-VeraCrypt) }
+        'winrar' { return [bool](Find-WinRAR) }
         'desktop-apps' { return (Test-DesktopApps) }
         'nvm-windows' { return (Test-NvmSetup) }
         'codex' { return [bool](Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1) }
@@ -388,6 +400,7 @@ try {
         }
         'git' { Install-WingetPackage 'Git.Git' }
         'veracrypt' { Install-WingetPackage 'IDRIX.VeraCrypt' }
+        'winrar' { Install-WingetPackage 'RARLab.WinRAR' 'en' }
         'itunes' {
             Install-DirectInstaller 'https://secure-appldnld.apple.com/itunes12/082-23400-20250912-4099b0db-ac9e-4cad-a6e7-2851fb1ec220/iTunes64Setup.exe' 'iTunes64Setup.exe' '3C11EE5F937230BFB576705A143A5AF098D87EA087A1E0F9FAA3A892ADF24481' -Apple $true
         }

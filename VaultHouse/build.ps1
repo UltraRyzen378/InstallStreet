@@ -24,7 +24,7 @@ Compile 'VaultHouse\TaskRuntime.cs' 'TaskRuntime.dll'
 Compile 'AppL\GoogleChrome.cs' 'AppL\GoogleChrome.dll'
 Compile 'DisplayCity\Wallpaper.cs' 'DisplayCity\Wallpaper.dll'
 Compile 'DisplayCity\ConsumerFeatures.cs' 'DisplayCity\ConsumerFeatures.dll'
-foreach ($module in @('AppL\winget','AppL\Git','AppL\GitHubCLI','AppL\codex','AppL\Rufus','AppL\VSCode','AppL\Dotnet10','AppL\Roblox','AppL\IconsExtract','AppL\Dimmer','AppL\Python','AppL\iTunes','AppL\iCloud','AppL\iLoader','AppL\VeraCrypt','AppL\nvm-windows','DisplayCity\DarkMode','Files\showHiddenFiles','Files\showFileExtensions','VaultHouse\RunningIcon','VaultHouse\Appointer\desktopn')) {
+foreach ($module in @('AppL\winget','AppL\Git','AppL\GitHubCLI','AppL\codex','AppL\Rufus','AppL\VSCode','AppL\Dotnet10','AppL\Roblox','AppL\IconsExtract','AppL\Dimmer','AppL\Python','AppL\iTunes','AppL\iCloud','AppL\iLoader','AppL\VeraCrypt','AppL\WinRAR','AppL\nvm-windows','DisplayCity\DarkMode','Files\showHiddenFiles','Files\showFileExtensions','VaultHouse\RunningIcon','VaultHouse\Appointer\desktopn')) {
     Compile ($module + '.cs') ($module + '.dll') 'library' $true $true
 }
 foreach ($module in @('__init__','AppL\init','DisplayCity\init','Files\__set__\applyChanges','VaultHouse\build-running-helper')) {

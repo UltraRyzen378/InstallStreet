@@ -28,7 +28,7 @@ try {
     $names = @()
     while ($record = $view.Fetch()) { $names += $record.StringData(1).Split('|')[-1] }
     $view.Close()
-    foreach ($required in @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','UpdateHelper.exe','TaskRuntime.dll','GoogleChrome.dll','IconsExtract.dll','Git.dll','GitHubCLI.dll','desktopn.dll','Wallpaper.dll','ConsumerFeatures.dll','Dimmer.dll','Python.dll','iTunes.dll','iCloud.dll','iLoader.dll','VeraCrypt.dll','LinkedInRemoval.dll','running.ico','app.asar')) {
+    foreach ($required in @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','UpdateHelper.exe','TaskRuntime.dll','GoogleChrome.dll','IconsExtract.dll','Git.dll','GitHubCLI.dll','desktopn.dll','Wallpaper.dll','ConsumerFeatures.dll','Dimmer.dll','Python.dll','iTunes.dll','iCloud.dll','iLoader.dll','VeraCrypt.dll','WinRAR.dll','LinkedInRemoval.dll','running.ico','app.asar')) {
         if ($names -notcontains $required) { throw "Missing MSI payload: $required" }
     }
     Write-Output ('MSI metadata and ' + $names.Count + ' payload files verified.')

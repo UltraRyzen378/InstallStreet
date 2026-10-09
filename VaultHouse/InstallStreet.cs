@@ -38,6 +38,7 @@ internal static class InstallStreetApp
         new SetupTask("icloud", "iCloud desktop (legacy Apple installer)"),
         new SetupTask("iloader", "iLoader", "itunes"),
         new SetupTask("veracrypt", "VeraCrypt", "winget"),
+        new SetupTask("winrar", "WinRAR", "winget"),
         new SetupTask("remove-linkedin", "Remove installed LinkedIn Appx packages (all users)"),
         new SetupTask("consumer-features", "Disable promoted-app auto-installation"),
         new SetupTask("wallpaper", "Set desktop wallpaper"),
@@ -117,6 +118,7 @@ internal static class InstallStreetApp
             case "icloud": relative = @"AppL\iCloud.dll"; break;
             case "iloader": relative = @"AppL\iLoader.dll"; break;
             case "veracrypt": relative = @"AppL\VeraCrypt.dll"; break;
+            case "winrar": relative = @"AppL\WinRAR.dll"; break;
             case "remove-linkedin": relative = @"VaultHouse\Guards\LinkedInRemoval.dll"; break;
             case "consumer-features": relative = @"DisplayCity\ConsumerFeatures.dll"; break;
             case "wallpaper": relative = @"DisplayCity\Wallpaper.dll"; break;
