@@ -37,6 +37,7 @@ Compile 'StorageSense\Launcher.cs' 'StorageSense.exe' 'winexe'
 Compile 'VaultHouse\Launcher.cs' 'InstallStreet.exe' 'winexe'
 Compile 'VaultHouse\InstallStreet.cs' 'InstallStreet.Cli.exe' 'exe'
 Compile 'VaultHouse\RunningHelper.cs' 'RunningHelper.exe' 'exe'
+Compile 'VaultHouse\UpdateHelper.cs' 'UpdateHelper.exe' 'winexe'
 # Publish only after every source has compiled successfully. Renaming also allows
 # an existing process to finish with its already loaded executable/library.
 $previous = Join-Path $stage 'previous'

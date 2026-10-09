@@ -17,6 +17,7 @@
       "to": "backend",
       "filter": [
         "InstallStreet.Cli.exe",
+        "UpdateHelper.exe",
         "TaskRuntime.dll",
         "AppL/*.dll",
         "DisplayCity/DarkMode.dll",

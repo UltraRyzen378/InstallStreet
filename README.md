@@ -169,8 +169,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.2.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.2.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.3.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.3.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
@@ -208,6 +208,33 @@ and store application data in your user profile. The MSI is not a portable file.
 
 Run VaultHouse/verify-msi.ps1 to inspect MSI metadata and required payload files.
 The release binaries are unsigned; no signing certificate is configured.
+
+### Auto-update settings
+
+Open **Settings** in InstallStreet to enable automatic checks at startup and
+every six hours, automatic downloads, and automatic installation when idle.
+All options default to off. Automatic installation requires its own confirmation
+when enabled, then closes InstallStreet and runs the verified MSI after setup and
+StorageSense finish. Manual Check now, Download, and Install now are available.
+No app-installation or maintenance tasks are started by an InstallStreet update.
+
+Updates use published stable releases from UltraRyzen378/InstallStreet. Drafts
+and prereleases are excluded. MSI downloads must match the release SHA256SUMS.txt;
+the administrator-only UpdateHelper verifies the hash again after the app closes.
+Windows Installer never requests an automatic restart. Reopen InstallStreet from
+the desktop or Start menu shortcut after updating. For portable ZIP users, this
+installs an MSI copy and leaves the extracted folder unchanged.
+
+Because the repository is private, save a fine-grained GitHub token with
+**Contents: read** permission for this repository in Settings. It is encrypted
+with Electron safeStorage for the current Windows account, never returned to the
+renderer, and never included in releases or source control. This token is only
+used by the updater; it does not configure or authenticate gh. Published releases
+and repository access are required before checks can find an update.
+
+Settings are stored in %APPDATA%/InstallStreet/update-settings.json for packaged
+builds. Verified installers and update logs are under %APPDATA%/InstallStreet/Updates.
+Development builds do not install updates.
 
 Every setup run includes DisplayCity/Wallpaper.dll, setting the current user's
 wallpaper to C:\Windows\Web\Wallpaper\Theme1\img4.jpg. It verifies the active

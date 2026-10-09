@@ -17,3 +17,6 @@
 # Personal InstallStreet profile
 /gh-profile.json
 /.gh-profile-*.tmp
+/update-settings.json
+/.update-settings-*.tmp
+/Updates/

@@ -2,6 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('installstreet', {
   start: (mode, identity) => ipcRenderer.invoke('setup:start', mode, identity),
   gitStatus: () => ipcRenderer.invoke('setup:git-status'),
+  updateSettings: () => ipcRenderer.invoke('updates:settings'),
+  saveUpdateSettings: value => ipcRenderer.invoke('updates:save',value),
+  checkUpdates: () => ipcRenderer.invoke('updates:check'),
+  downloadUpdate: () => ipcRenderer.invoke('updates:download'),
+  installUpdate: () => ipcRenderer.invoke('updates:install'),
+  onUpdateState: callback => {const listener=(_event,value)=>callback(value);ipcRenderer.on('updates:state',listener);return ()=>ipcRenderer.removeListener('updates:state',listener);},
   openStorage: () => ipcRenderer.invoke('storage:open'),
   maintenanceCatalog: () => ipcRenderer.invoke('maintenance:catalog'),
   maintenanceStart: id => ipcRenderer.invoke('maintenance:start',id),

@@ -1,4 +1,4 @@
-param([string[]]$Paths = @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe'))
+param([string[]]$Paths = @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe','UpdateHelper.exe'))
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Add-Type -TypeDefinition @"

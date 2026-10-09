@@ -4,7 +4,7 @@ $root = Split-Path $PSScriptRoot -Parent
 $packageRoot = [IO.Path]::GetFullPath((Join-Path $root $PackageDirectory))
 if (!$RuntimeExecutable) { $RuntimeExecutable = Join-Path $packageRoot 'InstallStreet.exe' }
 $backend = Join-Path $packageRoot 'resources\backend'
-foreach ($file in @('InstallStreet.exe','StorageSense.exe','resources\app.asar','icudtl.dat','resources.pak','chrome_100_percent.pak','chrome_200_percent.pak','v8_context_snapshot.bin')) {
+foreach ($file in @('InstallStreet.exe','StorageSense.exe','resources\backend\UpdateHelper.exe','resources\app.asar','icudtl.dat','resources.pak','chrome_100_percent.pak','chrome_200_percent.pak','v8_context_snapshot.bin')) {
     if (!(Test-Path -LiteralPath (Join-Path $packageRoot $file))) { throw "Missing bundled runtime file: $file" }
 }
 # Load the actual shipped managed assemblies using Windows PowerShell's built-in
@@ -29,7 +29,7 @@ const missing = async () => { const error=new Error('not installed');error.code=
  const state=await createGitIdentity(missing,()=>false,process.env).status();
  assert.deepEqual(state,{gitInstalled:false,ghInstalled:false,name:'',email:''});
  assert.ok(publicCatalog().some(item=>item.id==='run-all'));
- for(const name of ['index.html','storage.html','preload.js','renderer.js','storage.js','styles.css','storage.css'])
+ for(const name of ['index.html','storage.html','preload.js','renderer.js','storage.js','styles.css','storage.css','update-renderer.js','updates.js','update-settings.js'])
    assert.ok(fs.readFileSync(path.join(archive,'electron',name)).length);
  console.log('Fresh-PC dependency probe passed: bundled Electron/Node/Chromium, UI assets, and missing Git/gh handling.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

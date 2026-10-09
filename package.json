@@ -1,12 +1,12 @@
 {
   "name": "installstreet",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "InstallStreet desktop setup",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test --test-isolation=none electron/runner.test.js electron/git-identity.test.js electron/setup-workflow.test.js electron/gh-profile.test.js electron/admin.test.js electron/maintenance.test.js",
+    "test": "node --test --test-isolation=none electron/runner.test.js electron/git-identity.test.js electron/setup-workflow.test.js electron/gh-profile.test.js electron/admin.test.js electron/maintenance.test.js electron/updates.test.js",
     "test:ui": "electron . --smoke-test",
     "build:tasks": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File VaultHouse/build.ps1",
     "postinstall": "node node_modules/electron/install.js",

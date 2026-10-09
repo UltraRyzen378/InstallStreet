@@ -7,9 +7,10 @@
   <title>InstallStreet</title>
   <link rel="stylesheet" href="styles.css">
   <script src="renderer.js" defer></script>
+  <script src="update-renderer.js" defer></script>
 </head>
 <body>
-  <header><div class="brand"><span class="mark">IS</span>InstallStreet</div><span class="badge">ADMINISTRATOR</span></header>
+  <header><div class="brand"><span class="mark">IS</span>InstallStreet</div><div class="header-tools"><button id="settings" class="quiet">Settings</button><span class="badge">ADMINISTRATOR</span></div></header>
   <main>
     <section class="hero"><p class="eyebrow">YOUR PC. READY TO GO.</p><h1>Set up this PC.</h1><p class="description">Apps, developer tools, and Windows settings.<br>Every task is included on every run.</p>
       <div class="actions"><button id="run" class="primary">Run InstallStreet <span aria-hidden="true">↗</span></button><button id="check">Check only</button><button id="retry">Retry setup</button><button id="logs" class="quiet">Open logs</button><button id="storage" class="quiet">StorageSense</button></div>
@@ -27,6 +28,22 @@
       <p class="git-warning">Optional: the next warning asks whether to also use these details for Git global author configuration. Saving this local profile does not change GitHub CLI authentication.</p>
       <p id="git-existing"></p><p id="git-error" role="alert"></p>
       <div class="actions"><button type="submit" class="primary">Save profile and continue</button><button type="button" id="git-skip">Continue without profile</button></div>
+    </form>
+  </dialog>
+  <dialog id="update-dialog" aria-labelledby="update-title">
+    <form id="update-form">
+      <p class="eyebrow">INSTALLSTREET SETTINGS</p><h2 id="update-title">Auto-update</h2>
+      <p>Update InstallStreet itself from published stable GitHub releases. Installed applications have their own update controls.</p>
+      <label class="toggle"><input id="update-check" type="checkbox"> Check automatically at startup and every 6 hours</label>
+      <label class="toggle"><input id="update-download" type="checkbox"> Download updates automatically</label>
+      <label class="toggle"><input id="update-install" type="checkbox"> Close InstallStreet and install automatically when idle</label>
+      <p>Updates wait for setup and StorageSense to finish. ZIP users get an installed MSI copy; the extracted folder stays unchanged.</p>
+      <label for="update-token">GitHub token for the private repository</label>
+      <input id="update-token" type="password" autocomplete="off" spellcheck="false" maxlength="512" placeholder="Leave blank to keep the saved token">
+      <p id="update-token-info">Use a fine-grained token with Contents read access to UltraRyzen378/InstallStreet. Saved tokens are encrypted for this Windows account.</p>
+      <label class="toggle"><input id="update-clear-token" type="checkbox"> Remove saved token</label>
+      <p id="update-status" role="status">No update check yet.</p>
+      <div class="actions update-actions"><button type="submit" class="primary">Save settings</button><button type="button" id="update-check-now">Check now</button><button type="button" id="update-download-now" disabled>Download</button><button type="button" id="update-install-now" disabled>Install now</button><button type="button" id="update-close">Close</button></div>
     </form>
   </dialog>
 </body>

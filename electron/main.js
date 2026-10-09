@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, net } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -9,6 +9,8 @@ const { SetupWorkflow } = require('./setup-workflow');
 const { isAdministrator, elevate, ensureAdministrator } = require('./admin');
 const { MaintenanceRunner, operation, publicCatalog } = require('./maintenance');
 const { spawn } = require('node:child_process');
+const { createUpdateSettings } = require('./update-settings');
+const { Updates, hashFile } = require('./updates');
 let storageRequested=process.argv.includes('--storage-sense');
 let storageWindow, maintenancePending=false, maintenanceLog;
 const maintenance=new MaintenanceRunner();
@@ -21,6 +23,42 @@ const smoke = process.argv.includes('--smoke-test');
 app.setPath('userData', path.join(dataRoot, 'tmp', smoke ? 'electron-smoke-profile' : 'electron-user-data'));
 app.setPath('crashDumps', path.join(dataRoot, 'tmp', 'electron-crashes'));
 const runner = new Runner(root, undefined, dataRoot);
+const updateSettings = createUpdateSettings(dataRoot, safeStorage);
+const updates = new Updates({version:app.getVersion(),root:dataRoot,settings:updateSettings,enabled:app.isPackaged,request:(url,options)=>net.fetch(url,options)});
+let installingUpdate=false, updateTimer, updateCheckTimer;
+const workActive=()=>workflow?.busy || runner.busy || maintenance.busy || maintenancePending;
+updates.on('state',state=>{if(window && !window.isDestroyed())window.webContents.send('updates:state',state);});
+async function installUpdate(automatic=false){
+  if(installingUpdate)throw new Error('Update installation is already starting.');
+  if(workActive())throw new Error('Wait for setup and StorageSense to finish before installing an update.');
+  if(updates.busy || !updates.downloaded)throw new Error('Download and verify an update first.');
+  installingUpdate=true;
+  let started=false;
+  try{
+    if(!automatic){const answer=await dialog.showMessageBox(window,{type:'question',title:'Install update?',message:'Close InstallStreet and install the verified update?',detail:'Windows Installer will open. No automatic restart occurs. For portable ZIP users, this installs an MSI copy; the extracted folder is unchanged.',buttons:['Install update','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
+    const downloaded=updates.downloaded;
+    if(await hashFile(downloaded.installer)!==downloaded.hash)throw new Error('The update file changed. Download it again.');
+    const helper=path.join(path.dirname(downloaded.installer),'UpdateHelper.exe');
+    await fs.copyFile(path.join(root,'UpdateHelper.exe'),helper);
+    await new Promise((resolve,reject)=>{const child=spawn(helper,[downloaded.installer,downloaded.hash,String(process.pid)],{shell:false,detached:true,windowsHide:false,stdio:'ignore'});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+    started=true;app.quit();
+    return {started:true};
+  }finally{if(!started)installingUpdate=false;}
+}
+async function automaticUpdates(){
+  if(!app.isPackaged || smoke)return;
+  try{
+    const settings=updateSettings.view();
+    if(!settings.checkOnStartup)return;
+    await updates.check();
+    if(updates.release && settings.autoDownload){await updates.download();await maybeAutoInstall();}
+  }catch{ /* State is displayed in Settings; startup remains usable. */ }
+}
+async function maybeAutoInstall(){
+  if(!updateSettings.view().autoInstall || !updates.downloaded || installingUpdate || updates.busy)return;
+  if(workActive()){updates.report({phase:'ready',version:updates.downloaded.version,message:'Update verified. Waiting for setup or maintenance to finish.'});return;}
+  try{await installUpdate(true);}catch(error){updates.report({phase:'error',message:error.message});updates.downloaded=null;}
+}
 let window, workflow;
 const storagePage=pathToFileURL(path.join(__dirname,'storage.html')).href;
 function openStorageWindow(){
@@ -57,12 +95,23 @@ else {
       return answer.response === 0;
     });
     ipcMain.handle('setup:git-status', async event => { validate(event); return { ...await gitIdentity.status(), profile: await profile.load() }; });
-    ipcMain.handle('setup:start', (event, mode, value) => { validate(event);if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value); });
+    ipcMain.handle('setup:start', (event, mode, value) => { validate(event);if(installingUpdate)throw new Error('An update is starting.');if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value); });
+    try{await updateSettings.load();}catch(error){updates.report({phase:'error',message:error.message});}
+    ipcMain.handle('updates:settings',event=>{validate(event);return {...updateSettings.view(),packaged:app.isPackaged,state:updates.state};});
+    ipcMain.handle('updates:save',async(event,value)=>{
+      validate(event);
+      if(value?.autoInstall && !updateSettings.view().autoInstall){const answer=await dialog.showMessageBox(window,{type:'warning',title:'Enable automatic installation?',message:'Allow InstallStreet to close itself and install verified updates when idle?',detail:'Only published stable releases from UltraRyzen378/InstallStreet are used. For a portable ZIP, updates install an MSI copy; the extracted folder is unchanged.',buttons:['Enable automatic installation','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
+      return await updateSettings.save(value);
+    });
+    ipcMain.handle('updates:check',event=>{validate(event);return updates.check();});
+    ipcMain.handle('updates:download',event=>{validate(event);return updates.download();});
+    ipcMain.handle('updates:install',event=>{validate(event);return installUpdate();});
     ipcMain.handle('storage:open',event=>{validate(event);openStorageWindow();});
     const validateStorage=event=>{if(!storageWindow || event.sender!==storageWindow.webContents || event.senderFrame?.url!==storagePage)throw new Error('Invalid StorageSense request.');};
     ipcMain.handle('maintenance:catalog',event=>{validateStorage(event);return publicCatalog();});
     ipcMain.handle('maintenance:start',async(event,id)=>{
       validateStorage(event);
+      if(installingUpdate)throw new Error('An update is starting.');
       const selected=operation(id);
       if(workflow.busy||runner.busy||maintenance.busy||maintenancePending)throw new Error('Another setup or maintenance operation is active.');
       maintenancePending=true;
@@ -92,14 +141,14 @@ else {
     });
     workflow.on('log', text => { if (!window.isDestroyed()) window.webContents.send('setup:log', text); });
     workflow.on('state', state => { if (!window.isDestroyed()) window.webContents.send('setup:state', state); });
-    window.on('close', event => { if (workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
+    window.on('close', event => { if(installingUpdate)return;if (workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
     await window.loadFile(path.join(__dirname, 'index.html'));
     if (!smoke) { if(storageRequested)openStorageWindow();else window.show(); }
     else {
       try {
         const canceled = await window.webContents.executeJavaScript("(async () => { const pending = requestIdentity({ name: 'Existing Git Author', email: 'existing@example.org', profile: null }); if (!document.getElementById('git-dialog').open) throw new Error('Profile dialog did not open'); document.getElementById('git-skip').click(); return await pending; })()");
         if (canceled !== null) throw new Error('Skipping profile configuration did not cancel the profile.');
-        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('input[type=checkbox],select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check'); })()");
+        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check'); })()");
         if (result.code !== 0) throw new Error('Read-only backend check failed.');
         await new Promise(resolve => setTimeout(resolve, 300));
         const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '24 / 24 tasks' && !document.getElementById('run').disabled" );
@@ -111,6 +160,8 @@ else {
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     }
+    if(!smoke){void automaticUpdates();updateTimer=setInterval(()=>{void maybeAutoInstall();},15000);updateTimer.unref();updateCheckTimer=setInterval(()=>{if(!updates.busy && !updates.downloaded)void automaticUpdates();},6*60*60*1000);updateCheckTimer.unref();}
   }).catch(error => { console.error(error); if (!smoke) dialog.showErrorBox('InstallStreet', error.message); app.exit(1); });
   app.on('window-all-closed', () => app.quit());
+  app.on('before-quit',()=>{if(updateTimer)clearInterval(updateTimer);if(updateCheckTimer)clearInterval(updateCheckTimer);});
 }
