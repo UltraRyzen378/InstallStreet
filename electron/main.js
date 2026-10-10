@@ -1,7 +1,10 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, net, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, net, nativeTheme } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
+const { createPresetStore, preset, selection } = require('./presets');
+const { buildMedia, ensureOscdimg } = require('./media');
+let mediaBusy=false, builtIso=null;
 const { Runner } = require('./runner');
 const { createGitIdentity } = require('./git-identity');
 const { createProfileStore } = require('./gh-profile');
@@ -23,10 +26,10 @@ const smoke = process.argv.includes('--smoke-test');
 app.setPath('userData', path.join(dataRoot, 'tmp', smoke ? 'electron-smoke-profile' : 'electron-user-data'));
 app.setPath('crashDumps', path.join(dataRoot, 'tmp', 'electron-crashes'));
 const runner = new Runner(root, undefined, dataRoot);
-const updateSettings = createUpdateSettings(dataRoot, safeStorage);
+const updateSettings = createUpdateSettings(dataRoot);
 const updates = new Updates({version:app.getVersion(),root:dataRoot,settings:updateSettings,enabled:app.isPackaged,request:(url,options)=>net.fetch(url,options)});
 let installingUpdate=false, updateTimer, updateCheckTimer;
-const workActive=()=>workflow?.busy || runner.busy || maintenance.busy || maintenancePending;
+const workActive=()=>mediaBusy || workflow?.busy || runner.busy || maintenance.busy || maintenancePending;
 updates.on('state',state=>{if(window && !window.isDestroyed())window.webContents.send('updates:state',state);});
 async function installUpdate(automatic=false){
   if(installingUpdate)throw new Error('Update installation is already starting.');
@@ -74,6 +77,7 @@ maintenance.on('log',text=>{if(maintenanceLog)maintenanceLog.write(text+String.f
 maintenance.on('state',state=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:state',state);});
 maintenance.on('progress',value=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:progress',value);});
 const profile = createProfileStore(dataRoot);
+const presets=createPresetStore(dataRoot);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', (_event,args) => { if(args.includes('--storage-sense')){openStorageWindow();return;}if(window){if(window.isMinimized())window.restore();window.show();window.focus();} });
@@ -89,6 +93,37 @@ else {
     const validate = event => { if (event.sender !== window.webContents || event.senderFrame?.url !== page) throw new Error('Invalid application request.'); };
     ipcMain.handle('brand:icons8',event=>{validate(event);return shell.openExternal('https://icons8.com/');});
     ipcMain.handle('setup:close',event=>{validate(event);window.close();});
+    ipcMain.handle('presets',async(event,action,value,id)=>{
+      validate(event);
+      if(action==='list')return presets.list();
+      if(action==='save')return presets.save(value,id);
+      if(action==='delete')return presets.remove(id);
+      if(action==='export'){
+        const clean=preset(value);const choice=await dialog.showSaveDialog(window,{title:'Export preset',defaultPath:'InstallStreet-preset.json',filters:[{name:'InstallStreet preset',extensions:['json']}]});
+        if(!choice.canceled)await fs.writeFile(choice.filePath,JSON.stringify(clean,null,2));return;
+      }
+      if(action==='import'){
+        const choice=await dialog.showOpenDialog(window,{title:'Import preset',properties:['openFile'],filters:[{name:'InstallStreet preset',extensions:['json']}]});if(choice.canceled)return null;
+        if((await fs.stat(choice.filePaths[0])).size>65536)throw new Error('Preset file is too large.');
+        return presets.save(JSON.parse(await fs.readFile(choice.filePaths[0],'utf8')));
+      }
+      throw new Error('Unknown preset action.');
+    });
+    ipcMain.handle('media:build',async(event,value)=>{
+      validate(event);value=preset(value);if(workActive()||installingUpdate)throw new Error('Wait for the active operation.');mediaBusy=true;builtIso=null;
+      try{
+        const source=await dialog.showOpenDialog(window,{title:`Choose original Windows ${value.windows} x64 ISO`,properties:['openFile'],filters:[{name:'Windows ISO',extensions:['iso']}]});if(source.canceled)return null;
+        const oscdimg=await ensureOscdimg(root,dataRoot,text=>window.webContents.send('setup:log',text));
+        builtIso=await buildMedia({root,dataRoot,iso:source.filePaths[0],oscdimg,value,log:text=>window.webContents.send('setup:log',text)});return builtIso;
+      }finally{mediaBusy=false;}
+    });
+    ipcMain.handle('media:flash',async event=>{
+      validate(event);if(workActive()||installingUpdate)throw new Error('Wait for the active operation.');if(!builtIso)throw new Error('Build an ISO first.');await fs.access(builtIso);
+      const tool=await dialog.showOpenDialog(window,{title:'Choose Rufus to flash the ISO',properties:['openFile'],filters:[{name:'Rufus executable',extensions:['exe']}]});if(tool.canceled)return;
+      if(!/^rufus.*\.exe$/i.test(path.basename(tool.filePaths[0])))throw new Error('Select a Rufus executable.');
+      await new Promise((resolve,reject)=>{const child=spawn(tool.filePaths[0],['-i',builtIso],{shell:false,detached:true,stdio:'ignore'});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+      return 'Rufus opened. Select the USB drive, review the target, and confirm erasure in Rufus.';
+    });
     workflow = new SetupWorkflow(runner, profile, gitIdentity, async identity => {
       const answer = await dialog.showMessageBox(window, {
         type: 'warning', title: 'Change Git configuration?', message: 'Also use this profile for Git?',
@@ -98,7 +133,7 @@ else {
       return answer.response === 0;
     });
     ipcMain.handle('setup:git-status', async event => { validate(event); return { ...await gitIdentity.status(), profile: await profile.load() }; });
-    ipcMain.handle('setup:start', (event, mode, value) => { validate(event);if(installingUpdate)throw new Error('An update is starting.');if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value); });
+    ipcMain.handle('setup:start', (event, mode, value, tasks) => { validate(event);selection(tasks);if(mediaBusy)throw new Error('Wait for media preparation.');if(installingUpdate)throw new Error('An update is starting.');if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value,tasks); });
     try{await updateSettings.load();}catch(error){updates.report({phase:'error',message:error.message});}
     ipcMain.handle('updates:settings',event=>{validate(event);return {...updateSettings.view(),packaged:app.isPackaged,state:updates.state};});
     ipcMain.handle('updates:save',async(event,value)=>{
@@ -116,7 +151,7 @@ else {
       validateStorage(event);
       if(installingUpdate)throw new Error('An update is starting.');
       const selected=operation(id);
-      if(workflow.busy||runner.busy||maintenance.busy||maintenancePending)throw new Error('Another setup or maintenance operation is active.');
+      if(mediaBusy||workflow.busy||runner.busy||maintenance.busy||maintenancePending)throw new Error('Another setup or maintenance operation is active.');
       maintenancePending=true;
       try{
         if(selected.confirmation){const answer=await dialog.showMessageBox(storageWindow,{type:'warning',title:selected.name,message:selected.confirmation,buttons:['Run operation','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
@@ -144,14 +179,14 @@ else {
     });
     workflow.on('log', text => { if (!window.isDestroyed()) window.webContents.send('setup:log', text); });
     workflow.on('state', state => { if (!window.isDestroyed()) window.webContents.send('setup:state', state); });
-    window.on('close', event => { if(installingUpdate)return;if (workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
+    window.on('close', event => { if(installingUpdate)return;if (mediaBusy || workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
     await window.loadFile(path.join(__dirname, 'index.html'));
     if (!smoke) { if(storageRequested)openStorageWindow();else window.show(); }
     else {
       try {
         const canceled = await window.webContents.executeJavaScript("(async () => { const pending = requestIdentity({ name: 'Existing Git Author', email: 'existing@example.org', profile: null }); if (!document.getElementById('git-dialog').open) throw new Error('Profile dialog did not open'); document.getElementById('git-skip').click(); return await pending; })()");
         if (canceled !== null) throw new Error('Skipping profile configuration did not cancel the profile.');
-        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check'); })()");
+        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check',null,[\"winget\",\"git\",\"gh\",\"chrome\",\"codex\",\"rufus\",\"vscode\",\"dotnet10\",\"roblox\",\"nvm-windows\",\"dimmer\",\"python\",\"itunes\",\"icloud\",\"iloader\",\"veracrypt\",\"winrar\",\"iconsextract\",\"remove-linkedin\",\"consumer-features\",\"wallpaper\",\"dark-mode\",\"hidden-files\",\"file-extensions\",\"desktop-apps\",\"running-icon\"]); })()");
         if (result.code !== 0) throw new Error('Read-only backend check failed.');
         await new Promise(resolve => setTimeout(resolve, 300));
         const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '26 / 26 tasks' && !document.getElementById('run').disabled" );

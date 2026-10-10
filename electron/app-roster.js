@@ -11,7 +11,8 @@ for(const [id,name] of appRoster){
   const well=document.createElement('span');well.className='app-logo';
   const logo=document.createElement('img');logo.src=`assets/apps/${id}.${id==='iloader'?'svg':'png'}`;logo.alt='';logo.width=32;logo.height=32;well.append(logo);
   const text=document.createElement('span');text.textContent=name;
-  item.append(well,text);appRosterRoot.append(item);
+  const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.value=id;checkbox.setAttribute('aria-label',name);checkbox.className='task-choice';
+  item.append(checkbox,well,text);appRosterRoot.append(item);
 }
 document.getElementById('icons8-credit').addEventListener('click',async()=>{try{await window.installstreet.openIcons8();}catch(error){document.getElementById('status').textContent=error.message;}});
 document.getElementById('finish').addEventListener('click',async()=>{try{await window.installstreet.closeSetup();}catch(error){document.getElementById('status').textContent=error.message;}});

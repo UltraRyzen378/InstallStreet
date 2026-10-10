@@ -4,6 +4,12 @@ const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
 const { Runner } = require('./runner');
 function fixture() { const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough(); return child; }
+test('selected runs include dependencies without unrelated apps and empty selection never spawns',async()=>{
+  const child=fixture();let invocation;
+  const runner=new Runner('fixture',(...args)=>{invocation=args;return child;});
+  await assert.rejects(runner.start('run',[]));assert.equal(invocation,undefined);
+  const pending=runner.start('run',['gh']);assert.deepEqual(invocation[1],['--run','winget,git,gh']);child.emit('close',0);assert.equal((await pending).total,3);
+});
 test('all setup actions run the complete catalog and capture fragmented output', async () => {
   for (const mode of ['run', 'retry', 'check']) {
     const child = fixture(); let invocation;

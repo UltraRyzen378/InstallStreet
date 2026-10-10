@@ -80,7 +80,7 @@ jobs:
           & ./VaultHouse/verify-msi.ps1
           & ./VaultHouse/verify-zip.ps1
           & ./VaultHouse/verify-fresh-pc.ps1
-          & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe','UpdateHelper.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\StorageSense.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe','dist\win-unpacked\resources\backend\UpdateHelper.exe')
+          & ./VaultHouse/verify-admin.ps1 -Paths @('InstallStreet.exe','StorageSense.exe','InstallStreet.Cli.exe','RunningHelper.exe','UpdateHelper.exe','OscdimgSetup.exe','dist\win-unpacked\InstallStreet.exe','dist\win-unpacked\StorageSense.exe','dist\win-unpacked\resources\backend\InstallStreet.Cli.exe','dist\win-unpacked\resources\backend\UpdateHelper.exe','dist\win-unpacked\resources\backend\OscdimgSetup.exe')
 
       - name: Generate checksums and release notes
         run: |
@@ -96,7 +96,9 @@ jobs:
             '- Both bundle Electron and the task DLLs; no npm setup is needed.',
             '- StorageSense.exe provides administrator-only Windows checks, repair, and supported cleanup; each operation is started explicitly.',
             '- Administrator access is required. Canceling UAC stops startup.',
-            '- Setup starts only after clicking Run; it installs apps, changes Windows settings, and includes all-user LinkedIn Appx removal.',
+            '- Select apps and optional Windows settings, save presets, or prepare Windows 10/11 installation media.',
+            '- Public update checks and downloads require no GitHub token.',
+            '- Missing Oscdimg installs automatically; task failures do not stop remaining setup or StorageSense tasks.',
             '- Git identity changes require a separate confirmation. gh authentication is unchanged.',
             '- Binaries are unsigned. SHA256SUMS.txt contains artifact hashes.'
           )
@@ -115,7 +117,7 @@ jobs:
             dist/RELEASE_NOTES.md
 
   release:
-    name: Create draft GitHub release
+    name: Publish GitHub release
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -128,13 +130,14 @@ jobs:
           name: windows-release
           path: release
 
-      - name: Create draft release
+      - name: Publish release
         uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
         with:
           tag_name: ${{ needs.build.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: InstallStreet ${{ needs.build.outputs.tag }}
-          draft: true
+          draft: false
+          make_latest: true
           prerelease: false
           body_path: release/RELEASE_NOTES.md
           fail_on_unmatched_files: true

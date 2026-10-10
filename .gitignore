@@ -20,3 +20,6 @@
 /update-settings.json
 /.update-settings-*.tmp
 /Updates/
+
+/Presets/
+/Media/

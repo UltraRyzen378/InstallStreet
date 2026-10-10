@@ -25,15 +25,13 @@ class Updates extends EventEmitter {
   }
   report(value) { this.state = { ...value, currentVersion: this.version }; this.emit('state', this.state); return this.state; }
   async get(suffix, binary = false) {
-    const token = this.settings.token();
     const headers = { 'User-Agent': 'InstallStreet', Accept: binary ? 'application/octet-stream' : 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
-    if (token) headers.Authorization = 'Bearer ' + token;
     let response;
     try { response = await this.request(api + suffix, { headers, signal: AbortSignal.timeout(binary ? 600000 : 30000) }); }
     catch { throw new Error('GitHub could not be reached. Check your internet connection.'); }
     if (!response.ok) {
-      if (response.status === 404) throw new Error('No published release is accessible. For this private repository, save a token with Contents read access and publish a release. Drafts are excluded.');
-      if ([401, 403].includes(response.status)) throw new Error('GitHub denied access or rate-limited the request. Check your update token.');
+      if (response.status === 404) throw new Error('No published release is available. Publish a stable release with its MSI and checksums. Drafts are excluded.');
+      if ([401, 403].includes(response.status)) throw new Error('GitHub denied or rate-limited this public request. Try again later.');
       throw new Error('GitHub update request failed (HTTP ' + response.status + ').');
     }
     return response;

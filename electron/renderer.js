@@ -39,8 +39,10 @@ for (const mode of ['run', 'check', 'retry']) document.getElementById(mode).addE
   output.textContent = '';
   try {
     let identity = null;
-    if (mode !== 'check') { const info = await window.installstreet.gitStatus(); if (!info.ghInstalled) identity = await requestIdentity(info); }
-    await window.installstreet.start(mode, identity);
+    const tasks = window.selectedTasks();
+    if (!tasks.length) throw new Error('Select at least one app or setting.');
+    if (mode !== 'check' && tasks.includes('gh')) { const info = await window.installstreet.gitStatus(); if (!info.ghInstalled) identity = await requestIdentity(info); }
+    await window.installstreet.start(mode, identity, tasks);
   } catch (error) { status.textContent = error.message; }
   finally { preparing = false; buttons.forEach(button => { button.disabled = false; }); }
 });

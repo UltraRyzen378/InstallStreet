@@ -99,6 +99,10 @@ internal static class InstallStreetApp
     private static int Invoke(SetupTask task, string mode, Action<string> output)
     {
         if (TestInvoke != null) return TestInvoke(task, mode, output);
+        return ProcessOutput(Path.Combine(Root, "InstallStreet.Cli.exe"), "--task " + task.Id + " " + mode, output);
+    }
+    private static int InvokeInProcess(SetupTask task, string mode, Action<string> output)
+    {
         string relative;
         switch (task.Id)
         {
@@ -214,19 +218,15 @@ internal static class InstallStreetApp
                 SetupTask task = tasks[index];
                 Console.WriteLine("\n[{0}/{1}] {2}", index + 1, tasks.Count, task.Name);
                 Report(task.Id, "Running", index, tasks.Count);
-                bool blocked = false;
-                foreach (string dependency in task.Dependencies) if (results.ContainsKey(dependency) && !results[dependency]) blocked = true;
                 bool ok;
-                if (blocked)
-                {
-                    ok = false;
-                    string message = "A required task failed. Retry failed tasks to try again.";
-                    File.WriteAllText(Path.Combine(session, task.Id + ".failed"), message);
-                    Console.WriteLine(message);
-                }
-                else ok = Execute(session, task.Id,
+                try { ok = Execute(session, task.Id,
                     delegate(Action<string> output) { return Invoke(task, "Check", output); },
-                    delegate(Action<string> output) { return Invoke(task, "Run", output); }, 6, Console.WriteLine);
+                    delegate(Action<string> output) { return Invoke(task, "Run", output); }, 6, Console.WriteLine); }
+                catch (Exception error) {
+                    ok = false;
+                    Console.WriteLine("Task failed: " + error.Message + ". Continuing.");
+                    try { File.WriteAllText(Path.Combine(session, task.Id + ".failed"), error.ToString()); } catch { }
+                }
                 Report(task.Id, ok ? "Done" : "Failed", index + 1, tasks.Count);
                 results[task.Id] = ok;
                 failed |= !ok;
@@ -247,7 +247,9 @@ internal static class InstallStreetApp
         foreach (SetupTask task in tasks)
         {
             Report(task.Id, "Checking", completed, tasks.Count);
-            int code = Invoke(task, "Check", Console.WriteLine);
+            int code;
+            try { code = Invoke(task, "Check", Console.WriteLine); }
+            catch (Exception failure) { Console.WriteLine(failure.Message); code = 1; }
             Console.WriteLine("[{0}] {1}", code == 0 ? "READY" : code == 10 ? "NEEDS SETUP" : "ERROR", task.Name);
             Report(task.Id, code == 0 ? "Ready" : code == 10 ? "Needs setup" : "Error", ++completed, tasks.Count);
             error |= code != 0 && code != 10;
@@ -317,16 +319,26 @@ internal static class InstallStreetApp
         TestStatus = Path.Combine(directory, "StatusHQ");
         try
         {
+            int attempted = 0;
+            TestInvoke = delegate(SetupTask task, string mode, Action<string> output) {
+                attempted++;
+                if (task.Id == "chrome") throw new InvalidOperationException("fixture task crash");
+                return 0;
+            };
+            Assert(Check(Select("chrome,dimmer", false)) == 1 && attempted == 2, "check must continue after task exception");
+            attempted = 0;
+            Assert(Run(Select("chrome,dimmer", true)) == 1 && attempted == 2, "run must continue after task exception");
             TestInvoke = delegate(SetupTask task, string mode, Action<string> output) { return 10; };
-            Assert(Check(Select("chrome", false)) == 0 && !Directory.Exists(Status), "check-only must not create status files");
+            int beforeCheck = Directory.GetFiles(Status, "*", SearchOption.AllDirectories).Length;
+            Assert(Check(Select("chrome", false)) == 0 && Directory.GetFiles(Status, "*", SearchOption.AllDirectories).Length == beforeCheck, "check-only must not create status files");
             TestInvoke = delegate(SetupTask task, string mode, Action<string> output) {
                 if (mode == "Check") return task.Id == "chrome" ? 0 : 10;
                 return task.Id == "winget" ? 7 : 0;
             };
             Assert(Run(Select("chrome,codex", true)) == 1, "failed dependency must fail run");
             string[] failedRows = File.ReadAllLines(Path.Combine(Status, "latest.tsv"));
-            Assert(failedRows.Length == 4 && failedRows[3].Contains("codex\tfailed"), "blocked task must be recorded for retry");
-            Assert(File.ReadAllText(failedRows[3].Split('\t')[2]).Contains("required task failed"), "blocked task log missing");
+            Assert(failedRows.Length == 4 && failedRows[3].Contains("codex\tfailed"), "failed task must be recorded for retry");
+            Assert(File.ReadAllText(failedRows[3].Split('\t')[2]).Contains("Action exit code: 0"), "task must be attempted despite failed dependency");
             TestInvoke = delegate(SetupTask task, string mode, Action<string> output) { return 0; };
             Assert(Retry() == 0, "retry must recover failed tasks");
             Assert(File.ReadAllLines(Path.Combine(Status, "latest.tsv")).Length == 3, "retry must exclude successful tasks");
@@ -354,6 +366,10 @@ internal static class InstallStreetApp
         }
         try
         {
+            if (args.Length == 3 && args[0] == "--task") {
+                if (args[2] != "Check" && args[2] != "Run") throw new ArgumentException("Invalid task mode.");
+                return InvokeInProcess(Find(args[1]), args[2], Console.WriteLine);
+            }
             if (args.Length == 0) { Help(); return 0; }
             if (args.Length == 1 && args[0] == "--terminal") return Menu();
 

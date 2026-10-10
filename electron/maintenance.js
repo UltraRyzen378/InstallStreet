@@ -16,11 +16,11 @@ const catalog = [
   { id:'scan-disk', name:'Online disk scan', group:'Check', description:'Runs CHKDSK /scan on the Windows volume. No forced dismount or scheduled reboot.', steps:[{ file:path.join(system,'chkdsk.exe'), args:[volume,'/scan'], label:'CHKDSK online scan', accepted:[0,1] }] },
   { id:'restore-health', name:'Repair Windows image', group:'Repair', description:'Repairs image corruption using Windows Update when needed.', confirmation:'Repair the running Windows image? DISM may download repair files through Windows Update. No automatic restart is requested.', steps:[dism('/RestoreHealth')] },
   { id:'repair-files', name:'Repair system files', group:'Repair', description:'Runs SFC to repair protected system files.', confirmation:'Scan and repair protected Windows system files? Review the output afterward for any unrepaired files.', steps:[sfc('/scannow')] },
-  { id:'repair-windows', name:'Repair Windows', group:'Repair', description:'Runs DISM RestoreHealth, followed by SFC. Stops if DISM fails or requests a restart.', confirmation:'Run DISM RestoreHealth and then SFC? This changes Windows system files and may use Windows Update. No automatic restart will occur.', steps:[dism('/RestoreHealth'),sfc('/scannow')] },
+  { id:'repair-windows', name:'Repair Windows', group:'Repair', description:'Runs DISM RestoreHealth, followed by SFC. Continues after failures and records restart requests.', confirmation:'Run DISM RestoreHealth and then SFC? This changes Windows system files and may use Windows Update. No automatic restart will occur.', steps:[dism('/RestoreHealth'),sfc('/scannow')] },
   { id:'component-cleanup', name:'Clean superseded components', group:'Cleanup', description:'Runs supported component cleanup without ResetBase.', confirmation:'Remove superseded Windows components with DISM StartComponentCleanup? No ResetBase, user-file deletion, or automatic restart is included.', steps:[dism('/StartComponentCleanup')] },
   { id:'disk-cleanup', name:'Windows Disk Cleanup', group:'Cleanup', description:'Opens the Windows cleanup dialog. You choose which categories to delete.', steps:[{ file:path.join(system,'cleanmgr.exe'), args:['/d',volume.slice(0,1)], label:'Windows Disk Cleanup', interactive:true }] }
 ];
-catalog.push({ id:'run-all', name:'Run All', group:'All', description:'Checks Windows, repairs the image and system files, then cleans up.', confirmation:'Run all StorageSense checks, repairs, and cleanup in sequence? DISM may download repair files. Superseded components will be removed, and Windows Disk Cleanup will ask you to choose categories. Stops on a failed step or restart request. No automatic restart will occur.', steps:catalog.filter(item=>item.id!=='repair-windows').flatMap(item=>item.steps) });
+catalog.push({ id:'run-all', name:'Run All', group:'All', description:'Checks Windows, repairs the image and system files, then cleans up.', confirmation:'Run all StorageSense checks, repairs, and cleanup in sequence? DISM may download repair files. Superseded components will be removed, and Windows Disk Cleanup will ask you to choose categories. Continues after failed steps or restart requests. No automatic restart will occur.', steps:catalog.filter(item=>item.id!=='repair-windows').flatMap(item=>item.steps) });
 function operation(id) {
   const value = catalog.find(item => item.id === id);
   if (!value) throw new Error('Unknown StorageSense operation.');
@@ -35,18 +35,24 @@ class MaintenanceRunner extends EventEmitter {
     this.busy=true;
     this.emit('state',{busy:true,name:selected.name,completed:0,total:selected.steps.length,percent:null,message:'Starting '+selected.name+'…'});
     let code=0,restart=false,completed=0,ok=true;
+    const results=[];
     try {
       for(let index=0;index<selected.steps.length;index++) {
         const step=selected.steps[index];
         this.emit('state',{busy:true,name:selected.name,completed:index,total:selected.steps.length,percent:null,message:step.label});
         this.emit('log','\n> '+path.basename(step.file)+' '+step.args.join(' '));
-        code=await this.run(step);
+        let stepCode=null,error=null;
+        try { stepCode=await this.run(step); } catch(failure) { error=failure.message;this.emit('log',error); }
         completed=index+1;
-        this.emit('log','Exit code: '+code);
-        if(code===3010){restart=true;this.emit('log','Windows requested a restart. Restart manually before continuing maintenance.');break;}
-        if(!(step.accepted || [0]).includes(code)){ok=false;break;}
+        this.emit('log','Exit code: '+stepCode);
+        const passed=!error && (stepCode===3010 || (step.accepted || [0]).includes(stepCode));
+        results.push({name:step.label,code:stepCode,ok:passed,error});
+        if(stepCode===3010){restart=true;this.emit('log','Windows requested a restart. Continuing remaining tasks; restart manually afterward.');}
+        if(!passed){ok=false;if(code===0)code=stepCode || 1;this.emit('log','Task failed. Continuing with the next task.');}
       }
-      const result={code,ok,restart,message:restart?'Restart required. Restart Windows manually.':ok?'Operation finished. Review the output for health and repair results.':'Operation failed or needs attention. Review the output and Windows logs.'};
+      this.emit('log','\nSummary:');
+      results.forEach(item=>this.emit('log',(item.ok?'[DONE] ':'[FAILED] ')+item.name+(item.error?': '+item.error:'')));
+      const result={code:ok?(restart?3010:0):code,ok,restart,results,message:(ok?'All tasks finished. Review the output.':results.filter(item=>!item.ok).length+' task(s) failed; all remaining tasks were attempted.')+(restart?' Restart Windows manually.':'')};
       this.emit('state',{busy:false,name:selected.name,completed,total:selected.steps.length,percent:null,...result});
       return result;
     } catch(error) {

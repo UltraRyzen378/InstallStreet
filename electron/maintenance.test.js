@@ -25,23 +25,23 @@ test('repair sequence runs DISM before SFC and streams split UTF-16 output',asyn
   children[1].stdout.write(bytes.subarray(0,1));children[1].stdout.write(bytes.subarray(1));children[1].emit('close',0);
   assert.equal((await pending).ok,true);assert.ok(logs.includes('Verification complete'));
 });
-test('DISM failure or restart request stops before SFC',async()=>{
+test('DISM failure or restart request continues to SFC',async()=>{
   for(const code of [5,3010]){
-    const c=child();let calls=0;
-    const runner=new MaintenanceRunner(()=>{calls++;return c;},()=>true);
-    const pending=runner.start('repair-windows');c.emit('close',code);
-    const result=await pending;assert.equal(calls,1);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
+    let calls=0;
+    const runner=new MaintenanceRunner(()=>{const c=child();const current=++calls;setImmediate(()=>c.emit('close',current===1?code:0));return c;},()=>true);
+    const pending=runner.start('repair-windows');
+    const result=await pending;assert.equal(calls,2);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
   }
 });
 test('rejects concurrent operations and recovers after child errors',async()=>{
   const c=child();const runner=new MaintenanceRunner(()=>c,()=>true);
   const pending=runner.start('scan-health');
   await assert.rejects(runner.start('check-health'),/already active/);
-  c.emit('error',new Error('fixture failure'));await assert.rejects(pending,/fixture failure/);assert.equal(runner.busy,false);
+  c.emit('error',new Error('fixture failure'));assert.equal((await pending).ok,false);assert.equal(runner.busy,false);
 });
 test('missing Windows tool fails without launching a process',async()=>{
   let called=false;const runner=new MaintenanceRunner(()=>{called=true;},()=>false);
-  await assert.rejects(runner.start('check-health'),/not found/);assert.equal(called,false);
+  assert.equal((await runner.start('check-health')).ok,false);assert.equal(called,false);
 });
 test('Run All executes each command once, accepts CHKDSK status, and opens interactive cleanup last',async()=>{
   const calls=[];
@@ -58,11 +58,22 @@ test('Run All executes each command once, accepts CHKDSK status, and opens inter
   assert.match(calls.at(-1).file,/cleanmgr\.exe$/i);
   assert.equal(calls.at(-1).options.windowsHide,false);
 });
-test('Run All halts on failure or restart before later repairs and cleanup',async()=>{
+test('Run All continues after failure or restart through remaining repairs and cleanup',async()=>{
   for(const code of [5,3010]){
     let calls=0;
     const runner=new MaintenanceRunner(()=>{const c=child();calls++;setImmediate(()=>c.emit('close',calls===6?code:0));return c;},()=>true);
     const result=await runner.start('run-all');
-    assert.equal(calls,6);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
+    assert.equal(calls,9);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
   }
+});
+test('Run All survives spawn errors, process crashes and missing tools without losing earlier failures',async()=>{
+  let attempt=0;
+  const runner=new MaintenanceRunner(()=>{
+    const current=++attempt;
+    if(current===1)throw new Error('spawn failed');
+    const c=child();setImmediate(()=>current===2?c.emit('error',new Error('crashed')):c.emit('close',current===3?null:current===4?3010:0));return c;
+  },file=>!file.endsWith('sfc.exe'));
+  const result=await runner.start('run-all');
+  assert.equal(result.results.length,9);assert.equal(result.ok,false);assert.equal(result.restart,true);
+  assert.equal(result.results.at(-1).ok,true);assert.notEqual(result.code,0);assert.equal(runner.busy,false);
 });

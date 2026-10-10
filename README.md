@@ -1,19 +1,43 @@
 # InstallStreet
 
-Open InstallStreet.exe to launch the Electron desktop window. Run InstallStreet attempts
-the complete setup; tasks that are already configured are skipped. Retry setup
-attempts the complete setup again. Check only performs detection without changes.
-Open logs opens StatusHQ. There is no task selection or deselection.
+Open InstallStreet.exe, select apps and optional Windows settings, then choose Install.
+Nothing is selected initially. Required dependencies are included automatically.
+Check only inspects the selected tasks; Retry selected retries that selection.
 
-The setup window uses a dark Windows Installer style, with setup stages, a
-read-only application roster, overall progress, installation details, and bottom
-Install/Finish controls. Every application stays included. Logos are bundled
-locally so the window works offline; the visible Icons8 credit links to the
-provider. Icon sources are documented in electron/assets/apps/SOURCES.json.
+## Presets and Windows installation media
+
+Save a named preset with your app selection, optional settings, and Windows 10 or 11.
+Choose a saved preset to load it; edit its name or selection and save to update it.
+The preset actions menu supports import, export, deletion, and Create Windows ISO.
+Preset files contain task IDs and the Windows choice, never credentials or custom commands.
+
+Create Windows ISO asks for an original **x64 Windows ISO** matching your choice.
+Missing Oscdimg is installed automatically using Microsoft ADK Deployment Tools.
+The downloaded installer must have a valid Microsoft Authenticode signature.
+The builder copies the source into a unique Media folder, adds the native InstallStreet
+backend and preset, and creates an ISO supporting BIOS and UEFI boot. The source ISO
+is unchanged. Allow enough free space for both the extracted files and output ISO.
+
+Choose **Flash ISO with Rufus**, select your Rufus executable, then choose and verify
+the USB device in Rufus. Rufus performs the write and asks for confirmation before
+it erases the drive. InstallStreet does not report the drive flashed merely because
+Rufus opened. Windows setup still asks you about installation, disks and accounts.
+
+Apps install at the first administrator sign-in **after Windows setup**, with internet
+access required. They are not installed inside the offline Windows image. Individual
+apps may have additional OS requirements; choosing Windows 10 does not guarantee
+that every current app supports it. Use a normal administrator account for first sign-in.
+If a download fails or first-logon execution does not run, launch
+`%SystemDrive%\InstallStreet\RunPreset.ps1` with PowerShell and administrator permission.
+Successful tasks are detected and skipped on retry. Logs remain in that folder's StatusHQ.
+The media excludes personal GitHub profiles, update tokens, and existing logs.
+
+The UI retains its dark Windows Installer style and bundled offline logos.
+Icon sources are documented in electron/assets/apps/SOURCES.json.
 
 ## Applications installed
 
-Clicking **Run InstallStreet** attempts the full setup below. Existing working
+The following applications are available for selection. Existing working
 installations are checked and skipped. Opening InstallStreet or running
 **Check only** does not install these applications.
 
@@ -79,7 +103,7 @@ are separate from the application installation list above.
 | Desktop shortcuts | Creates or repairs shortcuts for installed desktop apps, PowerShell, and Command Prompt | `VaultHouse/Appointer/desktopn.dll` |
 | Running log icon | Registers the `.running` file icon | `VaultHouse/RunningIcon.dll` |
 
-InstallStreet loads each task DLL directly. Chrome contains C# installation logic.
+InstallStreet loads each task DLL in an isolated child process. Chrome contains C# installation logic.
 The other installer/settings DLLs embed the PowerShell task implementation at
 build time and share TaskRuntime.dll. workers/task.ps1 is their editable source;
 the built task DLLs do not read that file at runtime. Settings and the icon apply
@@ -102,10 +126,9 @@ InstallStreet.Cli.exe --retry
 InstallStreet.Cli.exe --help
 ```
 
-CLI task IDs allow individual integrations. The Electron window always runs the complete
-catalog. Codex, Rufus, and nvm-windows include WinGet as a prerequisite. Failed
-dependencies block dependent tasks; unrelated tasks continue. CLI --retry retries
-failed or pending tasks from the latest run. The window's Retry setup reruns setup.
+CLI task IDs allow individual integrations. The Electron window runs only the selected tasks and their dependencies. Codex, Rufus, and nvm-windows include WinGet as a prerequisite. Failed tasks do not block later tasks, including dependent apps. Each task runs
+in its own process so a crashing task cannot terminate the coordinator. CLI --retry retries
+failed or pending tasks from the latest run. The window's Retry selected reruns the selection.
 
 ## Logs
 
@@ -181,8 +204,8 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 `npm run dist` builds the DLL backend, then creates:
 
-- `dist/InstallStreet-1.4.0-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/InstallStreet-1.4.0-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/releases/1.5.1/InstallStreet-1.5.1-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/releases/1.5.1/InstallStreet-1.5.1-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
 Both include Electron and all task DLLs. Node.js, npm, the source repository, and
 build tools are not needed to run either release. The MSI installs InstallStreet;
@@ -237,12 +260,9 @@ Windows Installer never requests an automatic restart. Reopen InstallStreet from
 the desktop or Start menu shortcut after updating. For portable ZIP users, this
 installs an MSI copy and leaves the extracted folder unchanged.
 
-Because the repository is private, save a fine-grained GitHub token with
-**Contents: read** permission for this repository in Settings. It is encrypted
-with Electron safeStorage for the current Windows account, never returned to the
-renderer, and never included in releases or source control. This token is only
-used by the updater; it does not configure or authenticate gh. Published releases
-and repository access are required before checks can find an update.
+The repository is public. Update checks and downloads need no GitHub account or
+token. Older saved update tokens are removed when settings load. A published
+stable release with an MSI and SHA256SUMS.txt is required; drafts are excluded.
 
 Settings are stored in %APPDATA%/InstallStreet/update-settings.json for packaged
 builds. Verified installers and update logs are under %APPDATA%/InstallStreet/Updates.
@@ -305,12 +325,11 @@ still inspect binaries without launching the application.
 ## GitHub release automation
 
 The Windows releases workflow builds and verifies the MSI, portable ZIP, admin
-manifests, and SHA-256 checksums, then creates a draft GitHub release. It never
-runs the setup tasks on the build machine. Draft releases are reviewed and
-published from the repository's Releases page.
+manifests, and SHA-256 checksums, then automatically publishes a stable GitHub release as Latest. It never
+runs setup tasks on the build machine. Failed builds do not publish releases.
 
 For a release, update the version in package.json and package-lock.json, commit
-and push main, then push the matching version tag (for example v1.0.5). A tag
+and push main, then push the matching version tag (for example v1.5.1). A tag
 whose version does not match package.json fails before building. Keep the MSI
 upgrade code unchanged across versions.
 
@@ -318,7 +337,7 @@ Alternatively, run Windows releases from Actions on main. It uses the current
 package version and refuses to reuse a tag pointing at another commit. GitHub
 Actions must be enabled for the repository. The workflow uses the built-in
 GITHUB_TOKEN; no personal token or signing credentials are required. Build jobs
-have read-only repository access, and only the draft-release job can write.
+have read-only repository access, and only the release job can write.
 
 ## StorageSense sub-application
 
@@ -331,8 +350,7 @@ Available tools:
 
 - DISM CheckHealth, ScanHealth, and AnalyzeComponentStore.
 - DISM RestoreHealth, SFC verifyonly, and SFC scannow.
-- Repair Windows: DISM RestoreHealth followed by SFC; stops on failure or a
-  requested restart.
+- Repair Windows: DISM RestoreHealth followed by SFC; continues after failures and restart requests.
 - CHKDSK online scan of the Windows volume, without forced dismount/reboot.
 - DISM StartComponentCleanup without ResetBase.
 - Windows Disk Cleanup with its normal category-selection dialog.
@@ -340,7 +358,7 @@ Available tools:
 
 Run All runs every check, then DISM repair, SFC repair, component cleanup, and
 Windows Disk Cleanup, with one confirmation before starting. DISM and SFC repair
-each run once. The sequence stops on failure or a restart request; Disk Cleanup
+each run once. The sequence continues after failures and restart requests; Disk Cleanup
 still lets you choose which categories to delete.
 
 Repair and component cleanup require confirmation. No operation starts on launch.
@@ -352,3 +370,8 @@ application data folder. Repair downloads depend on Windows Update configuration
 There is no automatic reboot, ResetBase, custom recursive file deletion, or
 unattended clearing of Downloads or the Recycle Bin. Native maintenance operations
 are tested with fixtures rather than run against the developer's Windows image.
+
+After a local build, run `npm run organize:packages` to move MSI/ZIP packages into
+`dist/releases/<version>/` with per-version SHA256SUMS.txt files. Older builds are
+preserved. `dist/PACKAGES.md` lists the available versions; win-unpacked stays
+in dist for verification. CI keeps its staging paths until artifact upload.

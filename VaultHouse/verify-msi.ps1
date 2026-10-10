@@ -3,7 +3,10 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $package = Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw | ConvertFrom-Json
 $config = Get-Content -LiteralPath (Join-Path $root 'electron-builder.json') -Raw | ConvertFrom-Json
-if (!$Msi) { $Msi = 'dist\InstallStreet-' + $package.version + '-x64.msi' }
+if (!$Msi) {
+    $Msi = 'dist\InstallStreet-' + $package.version + '-x64.msi'
+    if (!(Test-Path -LiteralPath (Join-Path $root $Msi))) { $Msi = 'dist\releases\' + $package.version + '\InstallStreet-' + $package.version + '-x64.msi' }
+}
 $path = [IO.Path]::GetFullPath((Join-Path $root $Msi))
 if (!(Test-Path -LiteralPath $path)) { throw "MSI not found: $path" }
 $installer = New-Object -ComObject WindowsInstaller.Installer

@@ -18,7 +18,7 @@ window.installstreet.onMaintenanceState(state=>{
   if(state.message)status.textContent=state.message;
   if(state.total)step.textContent=`${state.completed||0} / ${state.total} steps`;
   if(state.busy){progress.removeAttribute('value');document.getElementById('storage-result').textContent='In progress';}
-  else {progress.value=state.ok?100:0;document.getElementById('storage-result').textContent=state.restart?'Restart needed':state.ok?'Finished':'Needs attention';}
+  else {progress.value=state.ok?100:0;document.getElementById('storage-result').textContent=!state.ok?(state.restart?'Failures · restart needed':'Needs attention'):state.restart?'Restart needed':'Finished';}
 });
 window.installstreet.onMaintenanceProgress(value=>{progress.value=value;});
 (async()=> {

@@ -18,6 +18,7 @@
       "filter": [
         "InstallStreet.Cli.exe",
         "UpdateHelper.exe",
+        "OscdimgSetup.exe",
         "TaskRuntime.dll",
         "AppL/*.dll",
         "DisplayCity/DarkMode.dll",

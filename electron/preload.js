@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('installstreet', {
-  start: (mode, identity) => ipcRenderer.invoke('setup:start', mode, identity),
+  start: (mode, identity, tasks) => ipcRenderer.invoke('setup:start', mode, identity, tasks),
+  presets: (action, value, id) => ipcRenderer.invoke('presets', action, value, id),
+  buildMedia: value => ipcRenderer.invoke('media:build', value),
+  flashMedia: () => ipcRenderer.invoke('media:flash'),
   gitStatus: () => ipcRenderer.invoke('setup:git-status'),
   updateSettings: () => ipcRenderer.invoke('updates:settings'),
   saveUpdateSettings: value => ipcRenderer.invoke('updates:save',value),
