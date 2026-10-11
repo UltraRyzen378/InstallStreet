@@ -4,9 +4,8 @@
   "sources": [
     {
       "app": "chrome",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/chrome.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/chrome.webp"
     },
     {
       "app": "python",
@@ -27,21 +26,18 @@
     },
     {
       "app": "icloud",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/icloud.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/iCloud.webp"
     },
     {
       "app": "winrar",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/winrar.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/winrar.webp"
     },
     {
       "app": "roblox",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/roblox.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/roblox.webp"
     },
     {
       "app": "iconsextract",
@@ -56,15 +52,13 @@
     },
     {
       "app": "winget",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/windows-11.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/winget.png"
     },
     {
       "app": "dotnet10",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/net-framework.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/dotnet.webp"
     },
     {
       "app": "dimmer",
@@ -73,9 +67,8 @@
     },
     {
       "app": "itunes",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/itunes.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/iTunes.webp"
     },
     {
       "app": "nvm-windows",
@@ -85,9 +78,8 @@
     },
     {
       "app": "codex",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/chatgpt.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/codex.png"
     },
     {
       "app": "iloader",
@@ -107,14 +99,13 @@
     },
     {
       "app": "playwright",
-      "kind": "user-provided logo",
+      "kind": "User-provided app icon",
       "source": "BRAINSTORM/playwright.png"
     },
     {
       "app": "7zip",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/7zip.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/7zip.webp"
     },
     {
       "app": "terminal",
@@ -130,20 +121,18 @@
     },
     {
       "app": "vlc",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/vlc.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/vlc.png"
     },
     {
       "app": "firefox",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/firefox.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/firefox.webp"
     },
     {
       "app": "powertoys",
-      "kind": "Microsoft publisher icon",
-      "source": "https://github.com/microsoft/PowerToys/blob/main/doc/images/icons/PowerToys%20icon/PNG/PowerToysAppList.targetsize-96.png"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/powertoys.png"
     },
     {
       "app": "everything",
@@ -153,39 +142,33 @@
     },
     {
       "app": "sharex",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/sharex.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/shareX.png"
     },
     {
       "app": "obs",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/obs-studio.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/obs.webp"
     },
     {
       "app": "steam",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/steam.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/steam.webp"
     },
     {
       "app": "discord",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/discord.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/discord.png"
     },
     {
       "app": "nextdns",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/dns.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/nextdns.svg"
     },
     {
       "app": "googledrive",
-      "kind": "Icons8",
-      "source": "https://img.icons8.com/color/96/google-drive.png",
-      "attribution": "https://icons8.com/"
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/googleDrive.svg"
     },
     {
       "app": "chatgpt",

@@ -10,11 +10,17 @@ const appRoster = [
   ['steam','Steam','gaming'],['discord','Discord','gaming'],['nextdns','NextDNS','utilities'],
   ['googledrive','Google Drive','utilities'],['chatgpt','ChatGPT','utilities']
 ];
+const appIconExtensions = {
+  '7zip':'webp',chrome:'webp',codex:'png',discord:'png',dotnet10:'webp',firefox:'webp',
+  googledrive:'svg',icloud:'webp',itunes:'webp',nextdns:'svg',obs:'webp',playwright:'png',
+  powertoys:'png',roblox:'webp',sharex:'png',steam:'webp',vlc:'png',winrar:'webp',winget:'png'
+};
 const appRosterRoot=document.getElementById('app-roster');
 for(const [id,name,category] of appRoster){
   const item=document.createElement('li');item.dataset.app=id;item.dataset.category=category;
   const well=document.createElement('span');well.className='app-logo';
-  const logo=document.createElement('img');logo.src=`assets/apps/${id}.${id==='iloader'?'svg':'png'}`;logo.alt='';logo.width=32;logo.height=32;well.append(logo);
+  const extension=appIconExtensions[id]||(id==='iloader'?'svg':'png');
+  const logo=document.createElement('img');logo.src=`assets/apps/${id}.${extension}`;logo.alt='';logo.width=32;logo.height=32;well.append(logo);
   const text=document.createElement('span');text.textContent=name;
   const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.value=id;checkbox.setAttribute('aria-label',name);checkbox.className='task-choice';
   item.append(checkbox,well,text);appRosterRoot.append(item);
