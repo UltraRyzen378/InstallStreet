@@ -1,12 +1,13 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
-const apps = ['winget','git','gh','chrome','codex','rufus','vscode','dotnet10','roblox','nvm-windows','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','iconsextract'];
-const settings = ['remove-linkedin','consumer-features','wallpaper','dark-mode','hidden-files','file-extensions','desktop-apps','running-icon'];
-const dependencies = Object.fromEntries(['git','codex','rufus','vscode','dotnet10','roblox','nvm-windows','python','veracrypt','winrar'].map(id=>[id,['winget']]));
+const apps = ['winget','git','gh','chrome','codex','rufus','vscode','dotnet10','roblox','nvm-windows','playwright','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','iconsextract','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt'];
+const settings = ['remove-linkedin','consumer-features','wallpaper','dark-mode','hidden-files','file-extensions','desktop-apps','running-icon','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context'];
+const dependencies = Object.fromEntries(['git','codex','rufus','vscode','dotnet10','roblox','nvm-windows','python','veracrypt','winrar','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt'].map(id=>[id,['winget']]));
+dependencies.playwright=['nvm-windows'];
 dependencies.gh=['winget','git']; dependencies.iloader=['itunes'];
 function selection(value) {
-  if (!Array.isArray(value) || !value.length || value.length > 26 || value.some(id=>typeof id!=='string'||![...apps,...settings].includes(id))) throw new Error('Select at least one valid app or setting.');
+  if (!Array.isArray(value) || !value.length || value.length > apps.length + settings.length || value.some(id=>typeof id!=='string'||![...apps,...settings].includes(id))) throw new Error('Select at least one valid app or setting.');
   const result=[];
   const add=id=>{for(const dep of dependencies[id]||[])add(dep);if(!result.includes(id))result.push(id);};
   value.forEach(add);return result;

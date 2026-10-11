@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -32,6 +32,7 @@ internal static class InstallStreetApp
         new SetupTask("dotnet10", ".NET 10 SDK", "winget"),
         new SetupTask("roblox", "Roblox Player", "winget"),
         new SetupTask("nvm-windows", "nvm-windows, Node.js and npm", "winget"),
+        new SetupTask("playwright", "Playwright", "nvm-windows"),
         new SetupTask("dimmer", "Dimmer 2.0.1 and desktop shortcut"),
         new SetupTask("python", "Python 3.14 and pip", "winget"),
         new SetupTask("itunes", "iTunes desktop (Apple installer)"),
@@ -47,7 +48,26 @@ internal static class InstallStreetApp
         new SetupTask("file-extensions", "Show file extensions"),
         new SetupTask("iconsextract", "NirSoft IconsExtract and desktop shortcut"),
         new SetupTask("desktop-apps", "Desktop app shortcuts"),
-        new SetupTask("running-icon", "Register .running icon")
+        new SetupTask("running-icon", "Register .running icon"),
+        new SetupTask("7zip", "7-Zip", "winget"),
+        new SetupTask("powertoys", "Microsoft PowerToys", "winget"),
+        new SetupTask("terminal", "Windows Terminal", "winget"),
+        new SetupTask("notepadplusplus", "Notepad++", "winget"),
+        new SetupTask("vlc", "VLC Media Player", "winget"),
+        new SetupTask("firefox", "Mozilla Firefox", "winget"),
+        new SetupTask("everything", "Everything file search", "winget"),
+        new SetupTask("sharex", "ShareX screenshot utility", "winget"),
+        new SetupTask("obs", "OBS Studio recording and streaming", "winget"),
+        new SetupTask("steam", "Steam gaming client", "winget"),
+        new SetupTask("discord", "Discord", "winget"),
+        new SetupTask("nextdns", "NextDNS", "winget"),
+        new SetupTask("googledrive", "Google Drive", "winget"),
+        new SetupTask("chatgpt", "ChatGPT for Windows (Microsoft Store)", "winget"),
+        new SetupTask("developer-mode", "Enable Developer Mode"),
+        new SetupTask("long-paths", "Enable Long File Paths"),
+        new SetupTask("disable-bing-search", "Disable Bing Search in Start"),
+        new SetupTask("taskbar-left", "Align Taskbar to Left"),
+        new SetupTask("end-task-context", "Enable End Task in Taskbar Context Menu")
     };
     private static Action<string, string, int, int> Progress;
     private static void Report(string id, string state, int completed, int total) { if (Progress != null) Progress(id, state, completed, total); }
@@ -116,6 +136,7 @@ internal static class InstallStreetApp
             case "dotnet10": relative = @"AppL\Dotnet10.dll"; break;
             case "roblox": relative = @"AppL\Roblox.dll"; break;
             case "nvm-windows": relative = @"AppL\nvm-windows.dll"; break;
+            case "playwright": relative = @"AppL\Playwright.dll"; break;
             case "dimmer": relative = @"AppL\Dimmer.dll"; break;
             case "python": relative = @"AppL\Python.dll"; break;
             case "itunes": relative = @"AppL\iTunes.dll"; break;
@@ -132,6 +153,25 @@ internal static class InstallStreetApp
             case "iconsextract": relative = @"AppL\IconsExtract.dll"; break;
             case "desktop-apps": relative = @"VaultHouse\Appointer\desktopn.dll"; break;
             case "running-icon": relative = @"VaultHouse\RunningIcon.dll"; break;
+            case "7zip": relative = @"AppL\7zip.dll"; break;
+            case "powertoys": relative = @"AppL\powertoys.dll"; break;
+            case "terminal": relative = @"AppL\terminal.dll"; break;
+            case "notepadplusplus": relative = @"AppL\notepadplusplus.dll"; break;
+            case "vlc": relative = @"AppL\vlc.dll"; break;
+            case "firefox": relative = @"AppL\firefox.dll"; break;
+            case "everything": relative = @"AppL\everything.dll"; break;
+            case "sharex": relative = @"AppL\sharex.dll"; break;
+            case "obs": relative = @"AppL\obs.dll"; break;
+            case "steam": relative = @"AppL\steam.dll"; break;
+            case "discord": relative = @"AppL\discord.dll"; break;
+            case "nextdns": relative = @"AppL\nextdns.dll"; break;
+            case "googledrive": relative = @"AppL\googledrive.dll"; break;
+            case "chatgpt": relative = @"AppL\chatgpt.dll"; break;
+            case "developer-mode": relative = @"DisplayCity\DeveloperMode.dll"; break;
+            case "long-paths": relative = @"DisplayCity\LongPaths.dll"; break;
+            case "disable-bing-search": relative = @"DisplayCity\DisableBingSearch.dll"; break;
+            case "taskbar-left": relative = @"DisplayCity\TaskbarLeft.dll"; break;
+            case "end-task-context": relative = @"DisplayCity\EndTaskContext.dll"; break;
             default: throw new ArgumentException("Unknown task library: " + task.Id);
         }
         string library = Path.Combine(Root, relative);

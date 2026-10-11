@@ -51,3 +51,18 @@ test('media bootstrap uses validated tasks, elevation and successful completion 
   assert.equal(literal("C:\\it's.iso"),"'C:\\it''s.iso'");
   assert.throws(()=>preset({...value,windows:'12'}));assert.throws(()=>firstRun({...value,tasks:['chrome\nshutdown']}));
 });
+
+test('Playwright pulls in Node and survives presets and media bootstrap',()=>{
+  assert.deepEqual(selection(['playwright']),['winget','nvm-windows','playwright']);
+  assert.deepEqual(selection(['playwright','nvm-windows']),['winget','nvm-windows','playwright']);
+  const p=preset({version:1,name:'Browser tests',windows:'11',tasks:['playwright']});
+  assert.match(firstRun(p),/--run 'winget,nvm-windows,playwright'/);
+  const {apps,settings}=require('./presets');
+  assert.equal(selection([...apps,...settings]).length,apps.length+settings.length);
+});
+
+test('new WOA apps all resolve through WinGet and persist in presets',()=>{
+  const added=['everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt'];
+  for(const id of added)assert.deepEqual(selection([id]),['winget',id]);
+  assert.deepEqual(preset({version:1,name:'Everyday apps',windows:'11',tasks:added}).tasks,added);
+});

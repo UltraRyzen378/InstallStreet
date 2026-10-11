@@ -17,15 +17,36 @@
     <aside class="wizard-sidebar" aria-label="Setup stages"><span class="sidebar-mark" aria-hidden="true">IS</span><h2>InstallStreet</h2><p>Your computer.<br>Your setup.</p><ol><li data-wizard-step="1" class="active"><span>1</span>Ready to install</li><li data-wizard-step="2"><span>2</span>Installation</li><li data-wizard-step="3"><span>3</span>Results</li></ol><div class="sidebar-note">Choose your apps.<br>Required dependencies are included automatically.</div></aside>
     <div class="wizard-content">
       <section class="hero"><h1 id="wizard-title">Ready to install</h1><p id="wizard-description" class="description">Select apps for this PC or save a preset for Windows installation media.</p></section>
-      <section class="roster-panel" aria-labelledby="roster-title"><div class="section-heading"><h2 id="roster-title">Select applications</h2><span><span id="selection-count">0 selected</span></span></div><ul id="app-roster" aria-label="Select applications"></ul></section>
+      <section class="roster-panel" aria-labelledby="roster-title">
+        <div class="section-heading">
+          <h2 id="roster-title">Select applications</h2>
+          <div class="roster-heading-actions">
+            <button type="button" id="select-all" class="quiet-chip">Select all</button>
+            <button type="button" id="deselect-all" class="quiet-chip">Deselect all</button>
+            <span id="selection-count">0 selected</span>
+          </div>
+        </div>
+        <div class="roster-toolbar">
+          <input type="search" id="app-search" class="search-input" placeholder="Search applications…">
+          <div class="category-filters" role="tablist" aria-label="Application categories">
+            <button type="button" class="category-chip active" data-category="all">All</button>
+            <button type="button" class="category-chip" data-category="dev">Developer</button>
+            <button type="button" class="category-chip" data-category="utilities">Utilities</button>
+            <button type="button" class="category-chip" data-category="browsers">Browsers</button>
+            <button type="button" class="category-chip" data-category="media">Media</button>
+            <button type="button" class="category-chip" data-category="gaming">Gaming</button>
+          </div>
+        </div>
+        <ul id="app-roster" aria-label="Select applications"></ul>
+      </section>
       <details class="roster-panel"><summary>Optional Windows settings</summary><div id="setting-roster"></div></details>
       <section class="roster-panel preset-panel" aria-label="Presets and Windows media"><label>Saved preset <select id="preset-list"><option value="">New preset</option></select></label><label>Preset name <input id="preset-name" maxlength="80" placeholder="My setup"></label><label>Windows <select id="preset-windows"><option value="11">Windows 11</option><option value="10">Windows 10</option></select></label><button id="preset-save">Save preset</button><details><summary>⋯ Preset actions</summary><div class="preset-actions"><button id="preset-export">Export</button><button id="preset-import">Import</button><button id="preset-delete">Delete preset</button><button id="media-build">Create Windows ISO</button><button id="media-flash" disabled>Flash ISO with Rufus</button></div></details><p>Apps install at first administrator sign-in after Windows setup. Internet required. Missing Windows ADK Deployment Tools are installed automatically. Rufus asks you to choose a USB drive and confirm erasure.</p><p id="media-status" role="status"></p></section>
       <div class="setup-tools"><button id="logs" class="quiet">View logs</button><button id="storage" class="quiet">StorageSense</button><span>Installation begins when you choose Install.</span></div>
       <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 tasks</span></div><progress id="progress" value="0" max="26"></progress></section>
-      <section class="output-panel"><div class="output-header"><span><i id="activity"></i>SETUP DETAILS</span><span id="result">Waiting</span></div><pre id="output" tabindex="0" aria-label="Task output">Setup output will appear here.</pre></section>
+      <section class="output-panel"><div class="output-header"><span><i id="activity"></i>SETUP DETAILS</span><div class="output-actions"><button type="button" id="copy-logs" class="quiet-chip">Copy logs</button><span id="result">Waiting</span></div></div><pre id="output" tabindex="0" aria-label="Task output">Setup output will appear here.</pre></section>
     </div>
   </main>
-  <footer class="wizard-footer"><button id="icons8-credit" class="quiet">Icons by Icons8</button><div class="wizard-buttons"><button id="check">Check only</button><button id="retry">Retry selected</button><button id="run" class="primary">Install</button><button id="finish">Close</button></div></footer>
+  <footer class="wizard-footer"><button id="icons8-credit" class="quiet">Icons by Icons8</button><div class="wizard-buttons"><button id="cancel-setup" class="danger" style="display:none;">Cancel</button><button id="check">Check only</button><button id="retry">Retry selected</button><button id="run" class="primary">Install</button><button id="finish">Close</button></div></footer>
   <dialog id="git-dialog" aria-labelledby="git-title">
     <form id="git-form">
       <p class="eyebrow">GITHUB CLI SETUP</p><h2 id="git-title">Save your GitHub profile?</h2>

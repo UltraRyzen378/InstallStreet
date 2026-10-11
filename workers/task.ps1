@@ -1,6 +1,6 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','playwright','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -77,16 +77,53 @@ function Test-NvmSetup {
     $npmVersion = & $npm.Source --version 2>&1
     return ($LASTEXITCODE -eq 0 -and "$npmVersion" -match '\d+\.\d+')
 }
-function Test-WingetPackage([string]$Id) {
+function Get-PlaywrightProject {
+    return (Join-Path $taskDataRoot 'BRAINSTORM\playwright')
+}
+function Test-Playwright {
+    Refresh-TaskEnvironment
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    $project = Get-PlaywrightProject
+    if (!$node -or !(Test-Path -LiteralPath (Join-Path $project 'node_modules\@playwright\test\package.json'))) { return $false }
+    Push-Location -LiteralPath $project
+    try {
+        & $node.Source -e "const fs=require('fs');const p=require('@playwright/test');for(const name of ['chromium','firefox','webkit']){if(!fs.existsSync(p[name].executablePath()))process.exit(1)}" 2>&1 | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } finally { Pop-Location }
+}
+function Install-Playwright {
+    Refresh-TaskEnvironment
+    $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    if (!$npm -or !$node) { throw 'Playwright needs Node.js and npm. Resolve the Node setup failure, then retry.' }
+    $project = Get-PlaywrightProject
+    New-Item -ItemType Directory -Path $project -Force | Out-Null
+    Push-Location -LiteralPath $project
+    try {
+        Write-Output "Setting up Playwright in $project"
+        if (!(Test-Path -LiteralPath 'package.json')) {
+            & $npm.Source init playwright@latest --yes -- --quiet
+            if ($LASTEXITCODE -ne 0) { throw "Playwright initialization failed: $LASTEXITCODE. Retry to repair the installation." }
+        } else {
+            # Preserve generated configuration and user tests on partial-install retries.
+            & $npm.Source install --save-dev '@playwright/test@latest'
+            if ($LASTEXITCODE -ne 0) { throw "Playwright package installation failed: $LASTEXITCODE" }
+        }
+        & $node.Source (Join-Path $project 'node_modules\@playwright\test\cli.js') install
+        if ($LASTEXITCODE -ne 0) { throw "Playwright browser installation failed: $LASTEXITCODE" }
+    } finally { Pop-Location }
+}
+
+function Test-WingetPackage([string]$Id, [string]$Source = 'winget') {
     $exe = Find-Winget
     if (!$exe) { return $false }
-    $result = & $exe list --id $Id --exact --source winget --disable-interactivity 2>&1
+    $result = & $exe list --id $Id --exact --source $Source --disable-interactivity 2>&1
     return ($LASTEXITCODE -eq 0 -and "$result" -match [regex]::Escape($Id))
 }
-function Install-WingetPackage([string]$Id, [string]$Locale = '') {
+function Install-WingetPackage([string]$Id, [string]$Locale = '', [string]$Source = 'winget') {
     if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }
     $exe = Find-Winget
-    $arguments = @('install','--id',$Id,'--exact','--source','winget','--accept-package-agreements','--accept-source-agreements','--disable-interactivity')
+    $arguments = @('install','--id',$Id,'--exact','--source',$Source,'--accept-package-agreements','--accept-source-agreements','--disable-interactivity')
     if ($Locale) { $arguments += @('--locale',$Locale) }
     & $exe @arguments
     if ($LASTEXITCODE -notin @(0,3010)) { throw "$Id installation failed: $LASTEXITCODE" }
@@ -385,6 +422,7 @@ function Test-Task {
         'winrar' { return [bool](Find-WinRAR) }
         'desktop-apps' { return (Test-DesktopApps) }
         'nvm-windows' { return (Test-NvmSetup) }
+        'playwright' { return (Test-Playwright) }
         'codex' { return [bool](Get-AppxPackage | Where-Object { $_.Name -match '(^|[.])Codex($|[.])|OpenAI.*Codex' } | Select-Object -First 1) }
         'dark-mode' {
             $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
@@ -397,6 +435,35 @@ function Test-Task {
             $icon = 'HKCU:\Software\Classes\InstallStreet.Running\DefaultIcon'
             $expected = '"' + (Join-Path $taskRoot 'VaultHouse\icons\.running\running.ico') + '",0'
             return ((Test-Path $extension) -and (Test-Path $icon) -and ((Get-Item $extension).GetValue('') -eq 'InstallStreet.Running') -and ((Get-Item $icon).GetValue('') -eq $expected))
+        }
+        '7zip' { return (Test-WingetPackage '7zip.7zip') }
+        'powertoys' { return (Test-WingetPackage 'Microsoft.PowerToys') }
+        'terminal' { return (Test-WingetPackage 'Microsoft.WindowsTerminal') }
+        'notepadplusplus' { return (Test-WingetPackage 'Notepad++.Notepad++') }
+        'vlc' { return (Test-WingetPackage 'VideoLAN.VLC') }
+        'firefox' { return (Test-WingetPackage 'Mozilla.Firefox') }
+        'everything' { return (Test-WingetPackage 'voidtools.Everything') }
+        'sharex' { return (Test-WingetPackage 'ShareX.ShareX') }
+        'obs' { return (Test-WingetPackage 'OBSProject.OBSStudio') }
+        'steam' { return (Test-WingetPackage 'Valve.Steam') }
+        'discord' { return (Test-WingetPackage 'Discord.Discord') }
+        'nextdns' { return (Test-WingetPackage 'NextDNS.NextDNS') }
+        'googledrive' { return (Test-WingetPackage 'Google.GoogleDrive') }
+        'chatgpt' { return (Test-WingetPackage '9NT1R1C2HH7J' -Source 'msstore') }
+        'developer-mode' {
+            return (Test-RegistryValue 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' 'AllowDevelopmentWithoutDevLicense' 1)
+        }
+        'long-paths' {
+            return (Test-RegistryValue 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'LongPathsEnabled' 1)
+        }
+        'disable-bing-search' {
+            return (Test-RegistryValue 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1)
+        }
+        'taskbar-left' {
+            return (Test-RegistryValue 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'TaskbarAl' 0)
+        }
+        'end-task-context' {
+            return (Test-RegistryValue 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask' 1)
         }
     }
 }
@@ -515,6 +582,7 @@ try {
         'desktop-apps' {
             foreach ($app in @(Get-DesktopApps)) { New-DesktopShortcut $app.Name $app.Target -Arguments $app.Arguments -WorkingDirectory $app.WorkingDirectory }
         }
+        'playwright' { Install-Playwright }
         'nvm-windows' {
             Refresh-TaskEnvironment
             $nvm = Find-Nvm
@@ -547,8 +615,36 @@ try {
             Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class InstallStreetShell { [DllImport("shell32.dll")] public static extern void SHChangeNotify(uint e, uint f, IntPtr a, IntPtr b); }'
             [InstallStreetShell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
         }
-    }
-    Write-Output "$Task action completed; the runner will verify the result."
+        '7zip'           { Install-WingetPackage '7zip.7zip' }
+        'powertoys'      { Install-WingetPackage 'Microsoft.PowerToys' }
+        'terminal'       { Install-WingetPackage 'Microsoft.WindowsTerminal' }
+        'notepadplusplus'{ Install-WingetPackage 'Notepad++.Notepad++' }
+        'vlc'            { Install-WingetPackage 'VideoLAN.VLC' }
+        'firefox'        { Install-WingetPackage 'Mozilla.Firefox' }
+        'everything'     { Install-WingetPackage 'voidtools.Everything' }
+        'sharex'         { Install-WingetPackage 'ShareX.ShareX' }
+        'obs'            { Install-WingetPackage 'OBSProject.OBSStudio' }
+        'steam'          { Install-WingetPackage 'Valve.Steam' }
+        'discord'        { Install-WingetPackage 'Discord.Discord' }
+        'nextdns'        { Install-WingetPackage 'NextDNS.NextDNS' }
+        'googledrive'    { Install-WingetPackage 'Google.GoogleDrive' }
+        'chatgpt'        { Install-WingetPackage '9NT1R1C2HH7J' -Source 'msstore' }
+        'developer-mode' {
+            Set-Dword 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' 'AllowDevelopmentWithoutDevLicense' 1
+        }
+        'long-paths' {
+            Set-Dword 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' 'LongPathsEnabled' 1
+        }
+        'disable-bing-search' {
+            Set-Dword 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1
+        }
+        'taskbar-left' {
+            Set-Dword 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'TaskbarAl' 0
+        }
+        'end-task-context' {
+            Set-Dword 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask' 1
+        }
+    }    Write-Output "$Task action completed; the runner will verify the result."
     exit 0
 } catch {
     [Console]::Error.WriteLine($_.Exception.Message)

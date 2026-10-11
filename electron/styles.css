@@ -26,3 +26,24 @@ dialog{width:min(600px,calc(100vw - 40px));max-height:calc(100vh - 40px);overflo
 .preset-panel details { width:100%; }
 .preset-actions { display:flex;flex-wrap:wrap;gap:8px;padding-top:10px; }
 summary { cursor:pointer; }
+
+/* Enhanced Roster Toolbar & Badges */
+.roster-heading-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.quiet-chip { background:#343942; border:1px solid #4a5360; color:#c6d2e0; border-radius:3px; padding:3px 9px; font-size:10px; font-weight:600; cursor:pointer; transition:all .15s; }
+.quiet-chip:hover { background:#444c59; color:#fff; border-color:#657488; }
+.roster-toolbar { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.search-input { width:100%; box-sizing:border-box; background:#181b20; border:1px solid #454d58; border-radius:3px; color:#edf0f3; padding:7px 10px; font-size:12px; font-family:inherit; }
+.search-input:focus { outline:1px solid #78b4ef; border-color:#78b4ef; }
+.category-filters { display:flex; flex-wrap:wrap; gap:6px; }
+.category-chip { background:#25292f; border:1px solid #3c4450; color:#9cb0c4; border-radius:3px; padding:4px 10px; font-size:11px; cursor:pointer; transition:background .15s, color .15s; }
+.category-chip:hover { background:#333a44; color:#d9e5f3; }
+.category-chip.active { background:#284a6b; border-color:#518dc4; color:#e1effc; font-weight:600; }
+.app-status { font-size:9px; padding:2px 5px; border-radius:3px; font-weight:600; text-transform:uppercase; margin-left:auto; flex-shrink:0; display:none; }
+.app-status.ready { display:inline-block; background:#1b3820; color:#78e08f; border:1px solid #2d6b38; }
+.app-status.needs-setup { display:inline-block; background:#3d3319; color:#f1c40f; border:1px solid #6c5a24; }
+.app-status.running { display:inline-block; background:#1b2d45; color:#70a1ff; border:1px solid #2f5a8a; }
+.app-status.done { display:inline-block; background:#163b25; color:#2ed573; border:1px solid #1e7040; }
+.app-status.failed { display:inline-block; background:#3f1d1d; color:#ff6b6b; border:1px solid #752929; }
+.setup-window .danger { background:#682323; border-color:#993c3c; color:#fff; }
+.setup-window .danger:hover { background:#822a2a; }
+.output-actions { display:flex; align-items:center; gap:10px; }

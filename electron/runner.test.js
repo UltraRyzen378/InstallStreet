@@ -18,12 +18,12 @@ test('all setup actions run the complete catalog and capture fragmented output',
     const pending = runner.start(mode);
     assert.deepEqual(invocation[1], [mode === 'check' ? '--check' : '--run', 'all']);
     assert.equal(invocation[2].shell, false);
-    child.stdout.write('[1/26] Goo'); child.stdout.write('gle Chrome\r\n');
+    child.stdout.write('[1/46] Goo'); child.stdout.write('gle Chrome\r\n');
     child.stderr.write('diagnostic\n'); child.stdout.write('Result: done\n');
     child.stdout.write('tail'); child.emit('close', 0);
     assert.equal((await pending).code, 0); assert.equal(runner.busy, false);
-    assert.deepEqual(logs, ['[1/26] Google Chrome', 'diagnostic', 'Result: done', 'tail']);
-    assert.equal(states.at(-1).completed, 26);
+    assert.deepEqual(logs, ['[1/46] Google Chrome', 'diagnostic', 'Result: done', 'tail']);
+    assert.equal(states.at(-1).completed, 46);
   }
 });
 test('rejects simultaneous and unknown actions', async () => {
@@ -51,6 +51,16 @@ test('packaged app directs mutable state outside the installation directory', as
   assert.equal(options.cwd, 'C:\\Program Files\\InstallStreet\\resources\\backend');
 });
 
-
-
-
+test('abort terminates active child process and marks runner not busy', async () => {
+  let killed = false;
+  const child = fixture();
+  child.kill = () => { killed = true; };
+  const runner = new Runner('.', () => child);
+  const pending = runner.start('run', ['chrome']);
+  assert.equal(runner.busy, true);
+  assert.equal(runner.abort(), true);
+  assert.equal(killed, true);
+  child.emit('close', 1);
+  await pending;
+  assert.equal(runner.busy, false);
+});

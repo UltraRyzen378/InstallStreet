@@ -51,7 +51,7 @@ test('Run All executes each command once, accepts CHKDSK status, and opens inter
   },()=>true);
   assert.ok(operation('run-all').confirmation);
   assert.equal((await runner.start('run-all')).ok,true);
-  assert.equal(calls.length,9);
+  assert.equal(calls.length,operation('run-all').steps.length);
   assert.deepEqual(calls.map(call=>call.args),operation('run-all').steps.map(step=>step.args));
   assert.equal(calls.filter(call=>call.args.includes('/RestoreHealth')).length,1);
   assert.equal(calls.filter(call=>call.args.includes('/scannow')).length,1);
@@ -63,7 +63,7 @@ test('Run All continues after failure or restart through remaining repairs and c
     let calls=0;
     const runner=new MaintenanceRunner(()=>{const c=child();calls++;setImmediate(()=>c.emit('close',calls===6?code:0));return c;},()=>true);
     const result=await runner.start('run-all');
-    assert.equal(calls,9);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
+    assert.equal(calls,operation('run-all').steps.length);assert.equal(result.restart,code===3010);assert.equal(result.ok,code===3010);
   }
 });
 test('Run All survives spawn errors, process crashes and missing tools without losing earlier failures',async()=>{
@@ -74,6 +74,6 @@ test('Run All survives spawn errors, process crashes and missing tools without l
     const c=child();setImmediate(()=>current===2?c.emit('error',new Error('crashed')):c.emit('close',current===3?null:current===4?3010:0));return c;
   },file=>!file.endsWith('sfc.exe'));
   const result=await runner.start('run-all');
-  assert.equal(result.results.length,9);assert.equal(result.ok,false);assert.equal(result.restart,true);
+  assert.equal(result.results.length,operation('run-all').steps.length);assert.equal(result.ok,false);assert.equal(result.restart,true);
   assert.equal(result.results.at(-1).ok,true);assert.notEqual(result.code,0);assert.equal(runner.busy,false);
 });

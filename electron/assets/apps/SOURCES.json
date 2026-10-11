@@ -104,6 +104,94 @@
       "app": "veracrypt",
       "kind": "publisher application icon",
       "source": "veracrypt.exe"
+    },
+    {
+      "app": "playwright",
+      "kind": "user-provided logo",
+      "source": "BRAINSTORM/playwright.png"
+    },
+    {
+      "app": "7zip",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/7zip.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "terminal",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/console.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "notepadplusplus",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/notepad-plus-plus.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "vlc",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/vlc.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "firefox",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/firefox.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "powertoys",
+      "kind": "Microsoft publisher icon",
+      "source": "https://github.com/microsoft/PowerToys/blob/main/doc/images/icons/PowerToys%20icon/PNG/PowerToysAppList.targetsize-96.png"
+    },
+    {
+      "app": "everything",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/search.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "sharex",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/sharex.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "obs",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/obs-studio.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "steam",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/steam.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "discord",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/discord.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "nextdns",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/dns.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "googledrive",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/google-drive.png",
+      "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "chatgpt",
+      "kind": "Icons8",
+      "source": "https://img.icons8.com/color/96/chatgpt.png",
+      "attribution": "https://icons8.com/"
     }
   ]
 }

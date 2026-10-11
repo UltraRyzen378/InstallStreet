@@ -55,6 +55,7 @@ installations are checked and skipped. Opening InstallStreet or running
 | nvm-windows | `CoreyButler.NVMforWindows` through WinGet | `nvm-windows` |
 | Node.js | LTS version installed and activated through nvm-windows | `nvm-windows` |
 | npm | Bundled with the Node.js version installed by nvm-windows | `nvm-windows` |
+| Playwright | `npm init playwright@latest` with noninteractive defaults; Node/npm prerequisite; Chromium, Firefox and WebKit | `playwright` |
 | Dimmer | Nelson Pires 2.0.1, from the specified official ZIP; starts after installation | `dimmer` |
 | Python | Python 3.14 through `Python.Python.3.14`; existing working 3.14+ environments are skipped | `python` |
 | pip | Included with Python; repaired with `ensurepip` when needed | `python` |
@@ -64,12 +65,29 @@ installations are checked and skipped. Opening InstallStreet or running
 | iLoader | Official nab138/iloader GitHub release 2.3.6 x64 MSI; runs after iTunes | `iloader` |
 | VeraCrypt | `IDRIX.VeraCrypt` through WinGet; includes a desktop shortcut | `veracrypt` |
 | WinRAR | `RARLab.WinRAR` through WinGet, official RARLab English installer; includes a desktop shortcut | `winrar` |
+| Everything | `voidtools.Everything` through WinGet | `everything` |
+| ShareX | `ShareX.ShareX` through WinGet | `sharex` |
+| OBS Studio | `OBSProject.OBSStudio` through WinGet | `obs` |
+| Steam | `Valve.Steam` through WinGet | `steam` |
+| Discord | `Discord.Discord` through WinGet | `discord` |
+| NextDNS | `NextDNS.NextDNS` through WinGet | `nextdns` |
+| Google Drive | `Google.GoogleDrive` through WinGet | `googledrive` |
+| ChatGPT for Windows | Official Microsoft Store app through WinGet (`9NT1R1C2HH7J`) | `chatgpt` |
+
+Playwright creates its TypeScript test project in `BRAINSTORM/playwright` under the
+InstallStreet data folder (the repository during development, `%APPDATA%/InstallStreet`
+when packaged). Select Playwright and click Install to initialize it; Check only does
+not download packages. Run `npx playwright test --ui` from that project to use it.
+Current Playwright supports Windows 11+ and Windows Server 2019+, not Windows 10.
+See [Playwright installation](https://playwright.dev/docs/intro).
 
 WinGet bootstrap also installs the **NuGet PowerShell package provider** and
 **Microsoft.WinGet.Client PowerShell module** when needed. WinGet repair and
 application installers can install their required framework dependencies.
-StorageSense.exe is the bundled maintenance companion. Electron is bundled with InstallStreet itself, rather than installed as a
-separate application. **PowerShell and Command Prompt are existing Windows
+StorageSense.exe is the bundled maintenance companion. The desktop app uses a
+native C++ WebView2 host and checks for the shared WebView2 Runtime at startup,
+installing Microsoft's signed runtime automatically when it is missing. The
+existing Node.js setup backend and task DLLs are bundled. **PowerShell and Command Prompt are existing Windows
 tools**; InstallStreet creates their desktop shortcuts.
 Desktop shortcut checks inspect both the current user's desktop (including
 OneDrive) and the Public desktop. Matching installer-created shortcuts are reused
@@ -165,7 +183,7 @@ multi-user management are not included.
 Microsoft bootstrap reference:
 https://learn.microsoft.com/en-us/windows/package-manager/winget/
 
-## Electron interface
+## Desktop interface and development
 
 The interface is in electron/index.html, styles.css, and renderer.js. main.js
 runs the desktop window, while preload.js exposes a limited bridge to the DLL
@@ -175,8 +193,9 @@ Install dependencies with npm install, build the backend with npm run build:task
 and launch with npm start or InstallStreet.exe. Test with npm test and npm run
 test:ui. The Electron dependency is locked in package-lock.json.
 
-InstallStreet.exe is a small launcher for the local Electron runtime. Keep the
-node_modules folder beside it when using this development build. Packaged releases include the Electron runtime and DLL backend.
+The repository's development UI still runs through Electron. The distributable
+MSI and portable ZIP use the native WebView2 host, bundled Node.js backend, and
+task DLLs; Chromium is not included in the release payload.
 
 
 Rufus and VS Code are only ready when their desktop shortcuts point to the
@@ -202,13 +221,15 @@ Official download: https://www.nirsoft.net/utils/iconsext.html
 
 ## Distributable releases
 
-`npm run dist` builds the DLL backend, then creates:
+`npm run dist` builds the DLL backend and native WebView2 host, restores the
+pinned Microsoft WebView2 SDK and WiX toolset, then creates:
 
-- `dist/releases/1.5.1/InstallStreet-1.5.1-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
-- `dist/releases/1.5.1/InstallStreet-1.5.1-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
+- `dist/InstallStreet-1.5.2-x64.msi`: Windows Installer with desktop and Start menu shortcuts.
+- `dist/InstallStreet-1.5.2-x64.zip`: extract anywhere and run InstallStreet.exe without installing InstallStreet.
 
-Both include Electron and all task DLLs. Node.js, npm, the source repository, and
-build tools are not needed to run either release. The MSI installs InstallStreet;
+Both include the native host, Node.js backend, and task DLLs. Node.js, npm, the
+source repository, and build tools are not needed to run either release. WebView2
+Runtime is installed automatically when missing. The MSI installs InstallStreet;
 it does not automatically run app-installation tasks. Open InstallStreet and run
 setup when ready. Actual task installation still requires its downloads/network.
 
@@ -231,8 +252,8 @@ machine's saved execution policy. Organization-enforced policies can still block
 setup and are reported as failures.
 
 `VaultHouse/verify-fresh-pc.ps1` checks packaged runtime assets and backend
-assemblies, then probes the bundled Electron/Node runtime with a Windows-only
-PATH, cleared developer environment variables, and missing Git/gh fixtures.
+assemblies, then probes the bundled Node backend and UI with a Windows-only PATH,
+cleared developer environment variables, and missing Git/gh fixtures.
 Release builds run this check. It does not install apps or run maintenance, and
 it is a dependency-isolation check rather than a clean Windows VM test.
 
@@ -312,9 +333,9 @@ installed Appx registrations, not provisioned packages for future accounts.
 
 InstallStreet requires administrator access for every desktop and CLI session.
 Windows launch manifests require elevation for the GUI, CLI, and compatibility
-helper. The Electron startup gate also prevents npm/development launches from
-opening the interface without administrator access. Canceling UAC stops startup.
-Electron renderer sandboxing stays enabled. Per-user settings apply to the
+helper. The administrator startup gate also prevents npm/development launches
+from opening the interface without administrator access. Canceling UAC stops startup.
+WebView2 navigation and developer tools are restricted. Per-user settings apply to the
 effective administrator account; entering another account's credentials changes
 which account receives those settings. Developer smoke tests and CLI checks must
 now be launched from an elevated terminal. DLL and packaging verification can
@@ -329,7 +350,7 @@ manifests, and SHA-256 checksums, then automatically publishes a stable GitHub r
 runs setup tasks on the build machine. Failed builds do not publish releases.
 
 For a release, update the version in package.json and package-lock.json, commit
-and push main, then push the matching version tag (for example v1.5.1). A tag
+and push main, then push the matching version tag (for example v1.5.2). A tag
 whose version does not match package.json fails before building. Keep the MSI
 upgrade code unchanged across versions.
 
@@ -375,3 +396,10 @@ After a local build, run `npm run organize:packages` to move MSI/ZIP packages in
 `dist/releases/<version>/` with per-version SHA256SUMS.txt files. Older builds are
 preserved. `dist/PACKAGES.md` lists the available versions; win-unpacked stays
 in dist for verification. CI keeps its staging paths until artifact upload.
+
+### Playwright integration checks
+
+Run `npm run test:playwright` to validate the worker, presets, and media bootstrap
+without installing apps or downloading browsers. Use `npm run test:playwright -- -Build`
+to also rebuild the native helpers. The script restores the working directory,
+cleans up its temporary fixtures, and returns failure when a check or build fails.

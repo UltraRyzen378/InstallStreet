@@ -1,9 +1,9 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, net, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, net, nativeTheme } = process.env.INSTALLSTREET_NATIVE ? require('../desktop/platform') : require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { createPresetStore, preset, selection } = require('./presets');
-const { buildMedia, ensureOscdimg } = require('./media');
+const { buildMedia, ensureOscdimg, findRufus } = require('./media');
 let mediaBusy=false, builtIso=null;
 const { Runner } = require('./runner');
 const { createGitIdentity } = require('./git-identity');
@@ -19,9 +19,10 @@ let storageWindow, maintenancePending=false, maintenanceLog;
 const maintenance=new MaintenanceRunner();
 const gitIdentity = createGitIdentity();
 
-const root = app.isPackaged ? path.join(process.resourcesPath, 'backend') : path.resolve(__dirname, '..');
+const root = process.env.INSTALLSTREET_NATIVE ? process.env.INSTALLSTREET_BACKEND : app.isPackaged ? path.join(process.resourcesPath, 'backend') : path.resolve(__dirname, '..');
+const uiRoot = process.env.INSTALLSTREET_NATIVE ? path.join(process.resourcesPath, 'ui') : __dirname;
 const dataRoot = app.isPackaged ? path.join(app.getPath('appData'), 'InstallStreet') : root;
-const page = pathToFileURL(path.join(__dirname, 'index.html')).href;
+const page = pathToFileURL(path.join(uiRoot, 'index.html')).href;
 const smoke = process.argv.includes('--smoke-test');
 app.setPath('userData', path.join(dataRoot, 'tmp', smoke ? 'electron-smoke-profile' : 'electron-user-data'));
 app.setPath('crashDumps', path.join(dataRoot, 'tmp', 'electron-crashes'));
@@ -63,15 +64,15 @@ async function maybeAutoInstall(){
   try{await installUpdate(true);}catch(error){updates.report({phase:'error',message:error.message});updates.downloaded=null;}
 }
 let window, workflow;
-const storagePage=pathToFileURL(path.join(__dirname,'storage.html')).href;
+const storagePage=pathToFileURL(path.join(uiRoot,'storage.html')).href;
 function openStorageWindow(){
   if(!window){storageRequested=true;return;}
   if(storageWindow && !storageWindow.isDestroyed()){storageWindow.show();storageWindow.focus();return;}
-  storageWindow=new BrowserWindow({width:1180,height:900,minWidth:800,minHeight:620,title:'StorageSense — Administrator',backgroundColor:'#101419',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
+  storageWindow=new BrowserWindow({width:1180,height:900,minWidth:800,minHeight:620,title:'StorageSense — Administrator',backgroundColor:'#101419',webPreferences:{preload:path.join(uiRoot,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
   storageWindow.removeMenu();storageWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));storageWindow.webContents.on('will-navigate',event=>event.preventDefault());
   storageWindow.on('close',event=>{if(maintenance.busy||maintenancePending){event.preventDefault();storageWindow.webContents.send('maintenance:log','Wait for the active operation or confirmation to finish before closing.');}});
   storageWindow.on('closed',()=>{storageWindow=null;if(window && !window.isDestroyed() && !window.isVisible())window.close();});
-  storageWindow.loadFile(path.join(__dirname,'storage.html'));
+  storageWindow.loadFile(path.join(uiRoot,'storage.html'));
 }
 maintenance.on('log',text=>{if(maintenanceLog)maintenanceLog.write(text+String.fromCharCode(10));if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:log',text);});
 maintenance.on('state',state=>{if(storageWindow && !storageWindow.isDestroyed())storageWindow.webContents.send('maintenance:state',state);});
@@ -85,7 +86,7 @@ else {
     const allowed = await ensureAdministrator(isAdministrator, () => elevate(app.isPackaged ? process.execPath : path.join(root, storageRequested ? 'StorageSense.exe' : 'InstallStreet.exe'), smoke));
     if (!allowed) { app.quit(); return; }
     nativeTheme.themeSource='dark';
-    window = new BrowserWindow({ width: 1100, height: 780, minWidth: 800, minHeight: 600, show: false, backgroundColor: '#101419', title: 'InstallStreet — Administrator', icon: path.join(root, 'VaultHouse/icons/.running/running.ico'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } });
+    window = new BrowserWindow({ width: 1100, height: 780, minWidth: 800, minHeight: 600, show: false, backgroundColor: '#101419', title: 'InstallStreet — Administrator', icon: path.join(root, 'VaultHouse/icons/.running/running.ico'), webPreferences: { preload: path.join(uiRoot, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } });
     window.removeMenu();
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', event => event.preventDefault());
@@ -117,11 +118,27 @@ else {
         builtIso=await buildMedia({root,dataRoot,iso:source.filePaths[0],oscdimg,value,log:text=>window.webContents.send('setup:log',text)});return builtIso;
       }finally{mediaBusy=false;}
     });
-    ipcMain.handle('media:flash',async event=>{
-      validate(event);if(workActive()||installingUpdate)throw new Error('Wait for the active operation.');if(!builtIso)throw new Error('Build an ISO first.');await fs.access(builtIso);
-      const tool=await dialog.showOpenDialog(window,{title:'Choose Rufus to flash the ISO',properties:['openFile'],filters:[{name:'Rufus executable',extensions:['exe']}]});if(tool.canceled)return;
-      if(!/^rufus.*\.exe$/i.test(path.basename(tool.filePaths[0])))throw new Error('Select a Rufus executable.');
-      await new Promise((resolve,reject)=>{const child=spawn(tool.filePaths[0],['-i',builtIso],{shell:false,detached:true,stdio:'ignore'});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+    ipcMain.handle('media:flash', async event => {
+      validate(event);
+      if (workActive() || installingUpdate) throw new Error('Wait for the active operation.');
+      if (!builtIso) throw new Error('Build an ISO first.');
+      await fs.access(builtIso);
+      let rufusExe = await findRufus(root);
+      if (!rufusExe) {
+        const tool = await dialog.showOpenDialog(window, {
+          title: 'Choose Rufus to flash the ISO',
+          properties: ['openFile'],
+          filters: [{ name: 'Rufus executable', extensions: ['exe'] }]
+        });
+        if (tool.canceled) return;
+        rufusExe = tool.filePaths[0];
+      }
+      if (!/^rufus.*\.exe$/i.test(path.basename(rufusExe))) throw new Error('Select a Rufus executable.');
+      await new Promise((resolve, reject) => {
+        const child = spawn(rufusExe, ['-i', builtIso], { shell: false, detached: true, stdio: 'ignore' });
+        child.once('error', reject);
+        child.once('spawn', () => { child.unref(); resolve(); });
+      });
       return 'Rufus opened. Select the USB drive, review the target, and confirm erasure in Rufus.';
     });
     workflow = new SetupWorkflow(runner, profile, gitIdentity, async identity => {
@@ -134,6 +151,7 @@ else {
     });
     ipcMain.handle('setup:git-status', async event => { validate(event); return { ...await gitIdentity.status(), profile: await profile.load() }; });
     ipcMain.handle('setup:start', (event, mode, value, tasks) => { validate(event);selection(tasks);if(mediaBusy)throw new Error('Wait for media preparation.');if(installingUpdate)throw new Error('An update is starting.');if(maintenance.busy||maintenancePending)throw new Error('Wait for StorageSense to finish before starting setup.');return workflow.start(mode,value,tasks); });
+    ipcMain.handle('setup:cancel', event => { validate(event); return runner.abort(); });
     try{await updateSettings.load();}catch(error){updates.report({phase:'error',message:error.message});}
     ipcMain.handle('updates:settings',event=>{validate(event);return {...updateSettings.view(),packaged:app.isPackaged,state:updates.state};});
     ipcMain.handle('updates:save',async(event,value)=>{
@@ -180,16 +198,16 @@ else {
     workflow.on('log', text => { if (!window.isDestroyed()) window.webContents.send('setup:log', text); });
     workflow.on('state', state => { if (!window.isDestroyed()) window.webContents.send('setup:state', state); });
     window.on('close', event => { if(installingUpdate)return;if (mediaBusy || workflow.busy || runner.busy || maintenance.busy || maintenancePending) { event.preventDefault(); window.webContents.send('setup:log', 'Setup or maintenance is active. Wait for it to finish before closing.'); } else if(storageWindow && !storageWindow.isDestroyed()){event.preventDefault();window.hide();} });
-    await window.loadFile(path.join(__dirname, 'index.html'));
+    await window.loadFile(path.join(uiRoot, 'index.html'));
     if (!smoke) { if(storageRequested)openStorageWindow();else window.show(); }
     else {
       try {
         const canceled = await window.webContents.executeJavaScript("(async () => { const pending = requestIdentity({ name: 'Existing Git Author', email: 'existing@example.org', profile: null }); if (!document.getElementById('git-dialog').open) throw new Error('Profile dialog did not open'); document.getElementById('git-skip').click(); return await pending; })()");
         if (canceled !== null) throw new Error('Skipping profile configuration did not cancel the profile.');
-        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check',null,[\"winget\",\"git\",\"gh\",\"chrome\",\"codex\",\"rufus\",\"vscode\",\"dotnet10\",\"roblox\",\"nvm-windows\",\"dimmer\",\"python\",\"itunes\",\"icloud\",\"iloader\",\"veracrypt\",\"winrar\",\"iconsextract\",\"remove-linkedin\",\"consumer-features\",\"wallpaper\",\"dark-mode\",\"hidden-files\",\"file-extensions\",\"desktop-apps\",\"running-icon\"]); })()");
+        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check',null,[\"winget\",\"git\",\"gh\",\"chrome\",\"codex\",\"rufus\",\"vscode\",\"dotnet10\",\"roblox\",\"nvm-windows\",\"playwright\",\"dimmer\",\"python\",\"itunes\",\"icloud\",\"iloader\",\"veracrypt\",\"winrar\",\"iconsextract\",\"7zip\",\"powertoys\",\"terminal\",\"notepadplusplus\",\"vlc\",\"firefox\",\"everything\",\"sharex\",\"obs\",\"steam\",\"discord\",\"nextdns\",\"googledrive\",\"chatgpt\",\"remove-linkedin\",\"consumer-features\",\"wallpaper\",\"dark-mode\",\"hidden-files\",\"file-extensions\",\"desktop-apps\",\"running-icon\",\"developer-mode\",\"long-paths\",\"disable-bing-search\",\"taskbar-left\",\"end-task-context\"]); })()");
         if (result.code !== 0) throw new Error('Read-only backend check failed.');
         await new Promise(resolve => setTimeout(resolve, 300));
-        const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '26 / 26 tasks' && !document.getElementById('run').disabled" );
+        const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '46 / 46 tasks' && !document.getElementById('run').disabled" );
         if (!complete) throw new Error('Renderer did not finish the read-only check.');
         const screenshot = await window.webContents.capturePage();
         await fs.mkdir(path.join(dataRoot, 'tmp'), { recursive: true });
