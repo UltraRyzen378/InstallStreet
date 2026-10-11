@@ -1,6 +1,6 @@
 ﻿param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','playwright','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt','ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','vmware','wsl','zoom','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','playwright','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt','ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','wsl','zoom','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -126,15 +126,6 @@ function Test-DaVinciResolve {
     }
     foreach ($base in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall')) {
         if (Test-Path $base) { foreach ($key in (Get-ChildItem $base -ErrorAction SilentlyContinue)) { $item = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue; if ($item.DisplayName -match '^DaVinci Resolve( |$)') { return $true } } }
-    }
-    return $false
-}
-function Test-VMwareWorkstation {
-    foreach ($path in @("$env:ProgramFiles\VMware\VMware Workstation\vmware.exe", "${env:ProgramFiles(x86)}\VMware\VMware Workstation\vmware.exe")) {
-        if (Test-Path -LiteralPath $path -PathType Leaf) { return $true }
-    }
-    foreach ($base in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall')) {
-        if (Test-Path $base) { foreach ($key in (Get-ChildItem $base -ErrorAction SilentlyContinue)) { $item = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue; if ($item.DisplayName -match '^VMware Workstation') { return $true } } }
     }
     return $false
 }
@@ -511,7 +502,6 @@ function Test-Task {
         'scoop' { return (Test-Scoop) }
         'tailscale' { return (Test-WingetPackage 'Tailscale.Tailscale') }
         'visualstudio' { return (Test-WingetPackage 'Microsoft.VisualStudio.2022.Community') }
-        'vmware' { return (Test-VMwareWorkstation) }
         'wsl' { return (Test-WingetPackage 'Microsoft.WSL') }
         'zoom' { return (Test-WingetPackage 'Zoom.Zoom') }
         'developer-mode' {
@@ -703,7 +693,6 @@ try {
         'scoop' { Open-ManualInstallPage 'https://scoop.sh/' 'Scoop standard setup is per-user and should be run from a regular, non-administrator PowerShell window.' }
         'tailscale' { Install-WingetPackage 'Tailscale.Tailscale' }
         'visualstudio' { Install-WingetPackage 'Microsoft.VisualStudio.2022.Community' }
-        'vmware' { Open-ManualInstallPage 'https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro' 'VMware Workstation Pro downloads require the Broadcom portal. InstallStreet opens the official portal; download and run the installer there.' }
         'wsl' { Install-WingetPackage 'Microsoft.WSL' }
         'zoom' { Install-WingetPackage 'Zoom.Zoom' }
         'developer-mode' {

@@ -84,11 +84,10 @@ installations are checked and skipped. Opening InstallStreet or running
 | Scoop | Opens the official Scoop setup page; install from a regular PowerShell session | `scoop` |
 | Tailscale | `Tailscale.Tailscale` through WinGet | `tailscale` |
 | Visual Studio Community 2022 | `Microsoft.VisualStudio.2022.Community` through WinGet | `visualstudio` |
-| VMware Workstation Pro | Opens Broadcom's official download portal for manual setup | `vmware` |
 | Windows Subsystem for Linux | `Microsoft.WSL` through WinGet | `wsl` |
 | Zoom Workplace | `Zoom.Zoom` through WinGet | `zoom` |
 
-DaVinci Resolve and VMware require the user to complete the publisher's download
+DaVinci Resolve requires the user to complete the publisher's download
 and installation flow. Scoop's per-user installer should be run from a regular,
 non-administrator PowerShell session. Homebrew runs inside a configured WSL 2
 Linux distribution; InstallStreet installs WSL but does not create a Linux user

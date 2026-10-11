@@ -73,7 +73,6 @@ internal static class InstallStreetApp
         new SetupTask("scoop", "Scoop (publisher setup)"),
         new SetupTask("tailscale", "Tailscale", "winget"),
         new SetupTask("visualstudio", "Visual Studio Community 2022", "winget"),
-        new SetupTask("vmware", "VMware Workstation Pro (Broadcom portal)"),
         new SetupTask("wsl", "Windows Subsystem for Linux", "winget"),
         new SetupTask("zoom", "Zoom Workplace", "winget"),
         new SetupTask("developer-mode", "Enable Developer Mode"),
@@ -190,7 +189,6 @@ internal static class InstallStreetApp
             case "scoop": relative = @"AppL\Scoop.dll"; break;
             case "tailscale": relative = @"AppL\Tailscale.dll"; break;
             case "visualstudio": relative = @"AppL\VisualStudio.dll"; break;
-            case "vmware": relative = @"AppL\VMware.dll"; break;
             case "wsl": relative = @"AppL\WSL.dll"; break;
             case "zoom": relative = @"AppL\Zoom.dll"; break;
             case "developer-mode": relative = @"DisplayCity\DeveloperMode.dll"; break;

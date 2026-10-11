@@ -227,11 +227,6 @@
       "source": "BRAINSTORM/visualStudio.webp"
     },
     {
-      "app": "vmware",
-      "kind": "User-provided app icon",
-      "source": "BRAINSTORM/vmware.png"
-    },
-    {
       "app": "wsl",
       "kind": "User-provided app icon",
       "source": "BRAINSTORM/wsl.webp"

@@ -12,14 +12,14 @@ const appRoster = [
   ['ahk','AutoHotkey','dev'],['blender','Blender','media'],['clipchamp','Microsoft Clipchamp','media'],
   ['davinciresolve','DaVinci Resolve','media'],['githubdesktop','GitHub Desktop','dev'],['godot','Godot Engine','dev'],
   ['homebrew','Homebrew for WSL','dev'],['scoop','Scoop','dev'],['tailscale','Tailscale','utilities'],
-  ['visualstudio','Visual Studio Community 2022','dev'],['vmware','VMware Workstation Pro','dev'],['wsl','Windows Subsystem for Linux','dev'],['zoom','Zoom Workplace','media']
+  ['visualstudio','Visual Studio Community 2022','dev'],['wsl','Windows Subsystem for Linux','dev'],['zoom','Zoom Workplace','media']
 ];
 const appIconExtensions = {
   '7zip':'webp',chrome:'webp',codex:'png',discord:'png',dotnet10:'webp',firefox:'webp',
   googledrive:'svg',icloud:'webp',itunes:'webp',nextdns:'svg',obs:'webp',playwright:'png',
   powertoys:'png',roblox:'webp',sharex:'png',steam:'webp',vlc:'png',winrar:'webp',winget:'png',
   blender:'webp',clipchamp:'svg',davinciresolve:'webp',githubdesktop:'webp',godot:'webp',
-  homebrew:'webp',tailscale:'png',visualstudio:'webp',vmware:'png',wsl:'webp',ahk:'png',scoop:'webp',zoom:'png'
+  homebrew:'webp',tailscale:'png',visualstudio:'webp',wsl:'webp',ahk:'png',scoop:'webp',zoom:'png'
 };
 const appRosterRoot=document.getElementById('app-roster');
 for(const [id,name,category] of appRoster){

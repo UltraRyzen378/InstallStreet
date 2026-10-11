@@ -62,13 +62,15 @@ test('Playwright pulls in Node and survives presets and media bootstrap',()=>{
 });
 
 test('BRAINSTORM apps appear in InstallStore, resolve dependencies and persist in presets',()=>{
-  const added=['ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','vmware','wsl','zoom'];
+  const added=['ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','wsl','zoom'];
   const winget=['ahk','blender','clipchamp','githubdesktop','godot','tailscale','visualstudio','wsl','zoom'];
   for(const id of winget)assert.deepEqual(selection([id]),['winget',id]);
   assert.deepEqual(selection(['homebrew']),['winget','wsl','homebrew']);
   assert.deepEqual(selection(['scoop']),['scoop']);
   assert.deepEqual(selection(['davinciresolve']),['davinciresolve']);
-  assert.deepEqual(selection(['vmware']),['vmware']);
+  assert.throws(()=>selection(['vmware']),/valid app or setting/);
+  assert.deepEqual(preset({version:1,name:'Old VMware preset',windows:'11',tasks:['chrome','vmware']}).tasks,['chrome']);
+  assert.throws(()=>preset({version:1,name:'VMware only',windows:'11',tasks:['vmware']}),/valid app or setting/);
   assert.deepEqual(preset({version:1,name:'BRAINSTORM apps',windows:'11',tasks:added}).tasks,added);
-  assert.equal(selection([...require('./presets').apps,...require('./presets').settings]).length,59);
+  assert.equal(selection([...require('./presets').apps,...require('./presets').settings]).length,58);
 });
