@@ -61,10 +61,10 @@
       <label class="toggle"><input id="update-check" type="checkbox"> Check automatically at startup and every 6 hours</label>
       <label class="toggle"><input id="update-download" type="checkbox"> Download updates automatically</label>
       <label class="toggle"><input id="update-install" type="checkbox"> Close InstallStreet and install automatically when idle</label>
-      <p>Updates wait for setup and StorageSense to finish. ZIP users get an installed MSI copy; the extracted folder stays unchanged.</p>
+      <p>Check for updates downloads and verifies a new release, then asks before installing it. InstallStreet reopens after a successful update. Updates wait for setup and StorageSense to finish. ZIP users get an installed MSI copy; the extracted folder stays unchanged.</p>
       <p>Updates download from the public InstallStreet repository. No GitHub account or token is required.</p>
       <p id="update-status" role="status">No update check yet.</p>
-      <div class="actions update-actions"><button type="submit" class="primary">Save settings</button><button type="button" id="update-check-now">Check now</button><button type="button" id="update-download-now" disabled>Download</button><button type="button" id="update-install-now" disabled>Install now</button><button type="button" id="update-close">Close</button></div>
+      <div class="actions update-actions"><button type="submit" class="primary">Save settings</button><button type="button" id="update-install-latest">Check for updates</button><button type="button" id="update-close">Close</button></div>
     </form>
   </dialog>
 </body>

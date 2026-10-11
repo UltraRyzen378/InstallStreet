@@ -5,6 +5,7 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const {Updates,compareVersions,hashFile}=require('./updates');
 const {createUpdateSettings}=require('./update-settings');
+const {installLatestUpdate}=require('./update-flow');
 const fixtureRoot=path.resolve(__dirname,'../tmp/update-tests');
 async function fixture(t){const root=path.join(fixtureRoot,crypto.randomUUID());await fs.mkdir(root,{recursive:true});t.after(()=>fs.rm(root,{recursive:true,force:true}));return root;}
 const encryption={isEncryptionAvailable:()=>true,encryptString:value=>Buffer.from('encrypted:'+value),decryptString:bytes=>bytes.toString().slice(10)};
@@ -46,4 +47,21 @@ test('missing public release is actionable without requesting credentials',async
 test('overlapping update requests are rejected',async t=>{
  let resolve;const updater=new Updates({version:'1.3.0',root:await fixture(t),settings:{token:()=>null},request:()=>new Promise(done=>{resolve=done;})});
  const pending=updater.check();await assert.rejects(updater.check(),/already active/);resolve(Response.json(release()));await pending;
+});
+test('Check for updates checks, downloads, verifies and installs in one action',async()=>{
+ const steps=[],updates={downloaded:null,release:{version:'1.4.0'},check:async()=>steps.push('check'),download:async()=>{steps.push('download');updates.downloaded={version:'1.4.0'};}};
+ const result=await installLatestUpdate({updates,workActive:()=>false,install:async()=>{steps.push('install');return {started:true};}});
+ assert.deepEqual(steps,['check','download','install']);assert.deepEqual(result,{started:true});
+});
+test('Check for updates skips installation when current and reuses a verified download',async()=>{
+ const calls=[],current={downloaded:null,release:null,check:async()=>calls.push('check'),download:async()=>calls.push('download')};
+ assert.deepEqual(await installLatestUpdate({updates:current,workActive:()=>false,install:async()=>calls.push('install')}),{current:true});
+ current.downloaded={version:'1.4.0'};
+ await installLatestUpdate({updates:current,workActive:()=>false,install:async()=>calls.push('install')});
+ assert.deepEqual(calls,['check','install']);
+});
+test('Check for updates does not run while setup or maintenance is active',async()=>{
+ let checked=false;
+ await assert.rejects(installLatestUpdate({updates:{check:async()=>{checked=true;}},workActive:()=>true,install:async()=>{}}),/Wait for setup/);
+ assert.equal(checked,false);
 });

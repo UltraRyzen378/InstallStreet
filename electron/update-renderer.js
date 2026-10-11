@@ -1,12 +1,12 @@
 const updateDialog=document.getElementById('update-dialog');
 const updateStatus=document.getElementById('update-status');
 let updateAction=false;
+let updatePhase='idle';
 function updateState(state){
+  updatePhase=state.phase;
   updateStatus.textContent=state.message;
   document.getElementById('settings').textContent=['available','ready'].includes(state.phase)?'Settings · Update available':'Settings';
-  document.getElementById('update-download-now').disabled=state.phase!=='available';
-  document.getElementById('update-install-now').disabled=state.phase!=='ready';
-  document.getElementById('update-check-now').disabled=['checking','downloading'].includes(state.phase);
+  document.getElementById('update-install-latest').disabled=updateAction||['checking','downloading','installing'].includes(state.phase);
 }
 function applyUpdateSettings(value){
   for(const [id,key] of [['update-check','checkOnStartup'],['update-download','autoDownload'],['update-install','autoInstall']])document.getElementById(id).checked=value[key];
@@ -29,9 +29,10 @@ document.getElementById('update-form').addEventListener('submit',async event=>{
   }catch(error){updateStatus.textContent=error.message;}
   finally{updateAction=false;}
 });
-for(const [id,method] of [['update-check-now','checkUpdates'],['update-download-now','downloadUpdate'],['update-install-now','installUpdate']])document.getElementById(id).addEventListener('click',async()=>{
+document.getElementById('update-install-latest').addEventListener('click',async()=>{
   if(updateAction)return;updateAction=true;
-  try{const result=await window.installstreet[method]();if(result.canceled)updateStatus.textContent='Update installation canceled.';}
+  updateStatus.textContent='Checking for updates…';document.getElementById('update-install-latest').disabled=true;
+  try{const result=await window.installstreet.installLatestUpdate();if(result.canceled)updateStatus.textContent='Update installation canceled.';}
   catch(error){updateStatus.textContent=error.message;}
-  finally{updateAction=false;}
+  finally{updateAction=false;document.getElementById('update-install-latest').disabled=['checking','downloading','installing'].includes(updatePhase);}
 });

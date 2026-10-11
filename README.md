@@ -292,14 +292,15 @@ Open **Settings** in InstallStreet to enable automatic checks at startup and
 every six hours, automatic downloads, and automatic installation when idle.
 All options default to off. Automatic installation requires its own confirmation
 when enabled, then closes InstallStreet and runs the verified MSI after setup and
-StorageSense finish. Manual Check now, Download, and Install now are available.
+StorageSense finish. The **Check for updates** button checks for a release,
+downloads and verifies its MSI, then asks before installing. InstallStreet opens
+again when Windows Installer succeeds.
 No app-installation or maintenance tasks are started by an InstallStreet update.
 
 Updates use published stable releases from UltraRyzen378/InstallStreet. Drafts
 and prereleases are excluded. MSI downloads must match the release SHA256SUMS.txt;
 the administrator-only UpdateHelper verifies the hash again after the app closes.
-Windows Installer never requests an automatic restart. Reopen InstallStreet from
-the desktop or Start menu shortcut after updating. For portable ZIP users, this
+Windows Installer never requests an automatic restart. For portable ZIP users, this
 installs an MSI copy and leaves the extracted folder unchanged.
 
 The repository is public. Update checks and downloads need no GitHub account or

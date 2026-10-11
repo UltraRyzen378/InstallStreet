@@ -14,6 +14,7 @@ const { MaintenanceRunner, operation, publicCatalog } = require('./maintenance')
 const { spawn } = require('node:child_process');
 const { createUpdateSettings } = require('./update-settings');
 const { Updates, hashFile } = require('./updates');
+const { installLatestUpdate } = require('./update-flow');
 let storageRequested=process.argv.includes('--storage-sense');
 let storageWindow, maintenancePending=false, maintenanceLog;
 const maintenance=new MaintenanceRunner();
@@ -39,12 +40,13 @@ async function installUpdate(automatic=false){
   installingUpdate=true;
   let started=false;
   try{
-    if(!automatic){const answer=await dialog.showMessageBox(window,{type:'question',title:'Install update?',message:'Close InstallStreet and install the verified update?',detail:'Windows Installer will open. No automatic restart occurs. For portable ZIP users, this installs an MSI copy; the extracted folder is unchanged.',buttons:['Install update','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
+    if(!automatic){const answer=await dialog.showMessageBox(window,{type:'question',title:'Install update?',message:'Close InstallStreet, install the verified update, and reopen it?',detail:'Windows Installer will open. No automatic Windows restart occurs. For portable ZIP users, this installs an MSI copy; the extracted folder is unchanged.',buttons:['Install update','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
     const downloaded=updates.downloaded;
     if(await hashFile(downloaded.installer)!==downloaded.hash)throw new Error('The update file changed. Download it again.');
     const helper=path.join(path.dirname(downloaded.installer),'UpdateHelper.exe');
     await fs.copyFile(path.join(root,'UpdateHelper.exe'),helper);
     await new Promise((resolve,reject)=>{const child=spawn(helper,[downloaded.installer,downloaded.hash,String(process.pid)],{shell:false,detached:true,windowsHide:false,stdio:'ignore'});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+    updates.report({phase:'installing',version:downloaded.version,message:`Installing version ${downloaded.version}. InstallStreet will reopen when the update finishes.`});
     started=true;app.quit();
     return {started:true};
   }finally{if(!started)installingUpdate=false;}
@@ -156,12 +158,10 @@ else {
     ipcMain.handle('updates:settings',event=>{validate(event);return {...updateSettings.view(),packaged:app.isPackaged,state:updates.state};});
     ipcMain.handle('updates:save',async(event,value)=>{
       validate(event);
-      if(value?.autoInstall && !updateSettings.view().autoInstall){const answer=await dialog.showMessageBox(window,{type:'warning',title:'Enable automatic installation?',message:'Allow InstallStreet to close itself and install verified updates when idle?',detail:'Only published stable releases from UltraRyzen378/InstallStreet are used. For a portable ZIP, updates install an MSI copy; the extracted folder is unchanged.',buttons:['Enable automatic installation','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
+      if(value?.autoInstall && !updateSettings.view().autoInstall){const answer=await dialog.showMessageBox(window,{type:'warning',title:'Enable automatic installation?',message:'Allow InstallStreet to close, install verified updates when idle, and reopen afterward?',detail:'Only published stable releases from UltraRyzen378/InstallStreet are used. For a portable ZIP, updates install an MSI copy; the extracted folder is unchanged.',buttons:['Enable automatic installation','Cancel'],defaultId:1,cancelId:1,noLink:true});if(answer.response!==0)return {canceled:true};}
       return await updateSettings.save(value);
     });
-    ipcMain.handle('updates:check',event=>{validate(event);return updates.check();});
-    ipcMain.handle('updates:download',event=>{validate(event);return updates.download();});
-    ipcMain.handle('updates:install',event=>{validate(event);return installUpdate();});
+    ipcMain.handle('updates:install-latest',event=>{validate(event);return installLatestUpdate({updates,install:()=>installUpdate(),workActive});});
     ipcMain.handle('storage:open',event=>{validate(event);openStorageWindow();});
     const validateStorage=event=>{if(!storageWindow || event.sender!==storageWindow.webContents || event.senderFrame?.url!==storagePage)throw new Error('Invalid StorageSense request.');};
     ipcMain.handle('maintenance:catalog',event=>{validateStorage(event);return publicCatalog();});

@@ -26,7 +26,16 @@ internal static class UpdateHelper {
                 }
                 ProcessStartInfo start=new ProcessStartInfo(Path.Combine(Environment.SystemDirectory,"msiexec.exe"),"/i \""+installer+"\" /passive /norestart /L*v \""+Path.Combine(Path.GetDirectoryName(installer),"install.log")+"\"");
                 start.UseShellExecute=false;
-                using (Process child=Process.Start(start)) { child.WaitForExit(); File.WriteAllText(log,"Windows Installer exit code: "+child.ExitCode+Environment.NewLine+"Open InstallStreet from its desktop or Start menu shortcut after installation."); return child.ExitCode; }
+                int exitCode;
+                using (Process child=Process.Start(start)) { child.WaitForExit(); exitCode=child.ExitCode; }
+                if (exitCode==0 || exitCode==3010) {
+                    string shortcut=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),@"Programs\InstallStreet\InstallStreet.lnk");
+                    if (!File.Exists(shortcut)) throw new FileNotFoundException("The update installed, but the InstallStreet Start menu shortcut was not found.",shortcut);
+                    ProcessStartInfo launch=new ProcessStartInfo(shortcut); launch.UseShellExecute=true; launch.WorkingDirectory=Path.GetDirectoryName(shortcut);
+                    using (Process app=Process.Start(launch)) { }
+                    File.WriteAllText(log,"Windows Installer exit code: "+exitCode+Environment.NewLine+"Launched the updated InstallStreet from its Start menu shortcut.");
+                } else File.WriteAllText(log,"Windows Installer exit code: "+exitCode+Environment.NewLine+"InstallStreet was not reopened because installation failed.");
+                return exitCode;
             }
         } catch (Exception error) { if (log!=null) File.WriteAllText(log,error.Message); return 1; }
     }
