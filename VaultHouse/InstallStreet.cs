@@ -63,6 +63,19 @@ internal static class InstallStreetApp
         new SetupTask("nextdns", "NextDNS", "winget"),
         new SetupTask("googledrive", "Google Drive", "winget"),
         new SetupTask("chatgpt", "ChatGPT for Windows (Microsoft Store)", "winget"),
+        new SetupTask("ahk", "AutoHotkey", "winget"),
+        new SetupTask("blender", "Blender", "winget"),
+        new SetupTask("clipchamp", "Microsoft Clipchamp (Microsoft Store)", "winget"),
+        new SetupTask("davinciresolve", "DaVinci Resolve (publisher setup)"),
+        new SetupTask("githubdesktop", "GitHub Desktop", "winget"),
+        new SetupTask("godot", "Godot Engine", "winget"),
+        new SetupTask("homebrew", "Homebrew for WSL 2 (publisher setup)", "winget", "wsl"),
+        new SetupTask("scoop", "Scoop (publisher setup)"),
+        new SetupTask("tailscale", "Tailscale", "winget"),
+        new SetupTask("visualstudio", "Visual Studio Community 2022", "winget"),
+        new SetupTask("vmware", "VMware Workstation Pro (Broadcom portal)"),
+        new SetupTask("wsl", "Windows Subsystem for Linux", "winget"),
+        new SetupTask("zoom", "Zoom Workplace", "winget"),
         new SetupTask("developer-mode", "Enable Developer Mode"),
         new SetupTask("long-paths", "Enable Long File Paths"),
         new SetupTask("disable-bing-search", "Disable Bing Search in Start"),
@@ -167,6 +180,19 @@ internal static class InstallStreetApp
             case "nextdns": relative = @"AppL\nextdns.dll"; break;
             case "googledrive": relative = @"AppL\googledrive.dll"; break;
             case "chatgpt": relative = @"AppL\chatgpt.dll"; break;
+            case "ahk": relative = @"AppL\AutoHotkey.dll"; break;
+            case "blender": relative = @"AppL\Blender.dll"; break;
+            case "clipchamp": relative = @"AppL\Clipchamp.dll"; break;
+            case "davinciresolve": relative = @"AppL\DaVinciResolve.dll"; break;
+            case "githubdesktop": relative = @"AppL\GitHubDesktop.dll"; break;
+            case "godot": relative = @"AppL\Godot.dll"; break;
+            case "homebrew": relative = @"AppL\Homebrew.dll"; break;
+            case "scoop": relative = @"AppL\Scoop.dll"; break;
+            case "tailscale": relative = @"AppL\Tailscale.dll"; break;
+            case "visualstudio": relative = @"AppL\VisualStudio.dll"; break;
+            case "vmware": relative = @"AppL\VMware.dll"; break;
+            case "wsl": relative = @"AppL\WSL.dll"; break;
+            case "zoom": relative = @"AppL\Zoom.dll"; break;
             case "developer-mode": relative = @"DisplayCity\DeveloperMode.dll"; break;
             case "long-paths": relative = @"DisplayCity\LongPaths.dll"; break;
             case "disable-bing-search": relative = @"DisplayCity\DisableBingSearch.dll"; break;

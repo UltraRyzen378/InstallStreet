@@ -61,8 +61,14 @@ test('Playwright pulls in Node and survives presets and media bootstrap',()=>{
   assert.equal(selection([...apps,...settings]).length,apps.length+settings.length);
 });
 
-test('new WOA apps all resolve through WinGet and persist in presets',()=>{
-  const added=['everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt'];
-  for(const id of added)assert.deepEqual(selection([id]),['winget',id]);
-  assert.deepEqual(preset({version:1,name:'Everyday apps',windows:'11',tasks:added}).tasks,added);
+test('BRAINSTORM apps appear in InstallStore, resolve dependencies and persist in presets',()=>{
+  const added=['ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','vmware','wsl','zoom'];
+  const winget=['ahk','blender','clipchamp','githubdesktop','godot','tailscale','visualstudio','wsl','zoom'];
+  for(const id of winget)assert.deepEqual(selection([id]),['winget',id]);
+  assert.deepEqual(selection(['homebrew']),['winget','wsl','homebrew']);
+  assert.deepEqual(selection(['scoop']),['scoop']);
+  assert.deepEqual(selection(['davinciresolve']),['davinciresolve']);
+  assert.deepEqual(selection(['vmware']),['vmware']);
+  assert.deepEqual(preset({version:1,name:'BRAINSTORM apps',windows:'11',tasks:added}).tasks,added);
+  assert.equal(selection([...require('./presets').apps,...require('./presets').settings]).length,59);
 });

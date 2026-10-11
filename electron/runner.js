@@ -1,4 +1,4 @@
-const { selection } = require('./presets');
+const { selection, apps, settings } = require('./presets');
 const { EventEmitter } = require('node:events');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
@@ -39,7 +39,7 @@ class Runner extends EventEmitter {
       return Promise.reject(error);
     }
 
-    const taskCount = selected ? selected.length : 46;
+    const taskCount = selected ? selected.length : apps.length + settings.length;
     if (!['run', 'check', 'retry'].includes(mode)) {
       return Promise.reject(new Error('Unknown setup action.'));
     }

@@ -20,11 +20,7 @@
       <section class="roster-panel" aria-labelledby="roster-title">
         <div class="section-heading">
           <h2 id="roster-title">Select applications</h2>
-          <div class="roster-heading-actions">
-            <button type="button" id="select-all" class="quiet-chip">Select all</button>
-            <button type="button" id="deselect-all" class="quiet-chip">Deselect all</button>
-            <span id="selection-count">0 selected</span>
-          </div>
+          <div class="roster-heading-actions"><span id="selection-count">0 selected</span></div>
         </div>
         <div class="roster-toolbar">
           <input type="search" id="app-search" class="search-input" placeholder="Search applications…">
@@ -42,7 +38,7 @@
       <details class="roster-panel"><summary>Optional Windows settings</summary><div id="setting-roster"></div></details>
       <section class="roster-panel preset-panel" aria-label="Presets and Windows media"><label>Saved preset <select id="preset-list"><option value="">New preset</option></select></label><label>Preset name <input id="preset-name" maxlength="80" placeholder="My setup"></label><label>Windows <select id="preset-windows"><option value="11">Windows 11</option><option value="10">Windows 10</option></select></label><button id="preset-save">Save preset</button><details><summary>⋯ Preset actions</summary><div class="preset-actions"><button id="preset-export">Export</button><button id="preset-import">Import</button><button id="preset-delete">Delete preset</button><button id="media-build">Create Windows ISO</button><button id="media-flash" disabled>Flash ISO with Rufus</button></div></details><p>Apps install at first administrator sign-in after Windows setup. Internet required. Missing Windows ADK Deployment Tools are installed automatically. Rufus asks you to choose a USB drive and confirm erasure.</p><p id="media-status" role="status"></p></section>
       <div class="setup-tools"><button id="logs" class="quiet">View logs</button><button id="storage" class="quiet">StorageSense</button><span>Installation begins when you choose Install.</span></div>
-      <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 tasks</span></div><progress id="progress" value="0" max="26"></progress></section>
+      <section class="progress-panel" aria-label="Setup progress"><div class="status-row"><span id="status" role="status">Ready when you are.</span><span id="count">0 tasks</span></div><progress id="progress" value="0" max="59"></progress></section>
       <section class="output-panel"><div class="output-header"><span><i id="activity"></i>SETUP DETAILS</span><div class="output-actions"><button type="button" id="copy-logs" class="quiet-chip">Copy logs</button><span id="result">Waiting</span></div></div><pre id="output" tabindex="0" aria-label="Task output">Setup output will appear here.</pre></section>
     </div>
   </main>

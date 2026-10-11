@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, dialog, net, nativeTheme } = process
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
-const { createPresetStore, preset, selection } = require('./presets');
+const { createPresetStore, preset, selection, apps, settings } = require('./presets');
 const { buildMedia, ensureOscdimg, findRufus } = require('./media');
 let mediaBusy=false, builtIso=null;
 const { Runner } = require('./runner');
@@ -204,10 +204,12 @@ else {
       try {
         const canceled = await window.webContents.executeJavaScript("(async () => { const pending = requestIdentity({ name: 'Existing Git Author', email: 'existing@example.org', profile: null }); if (!document.getElementById('git-dialog').open) throw new Error('Profile dialog did not open'); document.getElementById('git-skip').click(); return await pending; })()");
         if (canceled !== null) throw new Error('Skipping profile configuration did not cancel the profile.');
-        const result = await window.webContents.executeJavaScript("(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check',null,[\"winget\",\"git\",\"gh\",\"chrome\",\"codex\",\"rufus\",\"vscode\",\"dotnet10\",\"roblox\",\"nvm-windows\",\"playwright\",\"dimmer\",\"python\",\"itunes\",\"icloud\",\"iloader\",\"veracrypt\",\"winrar\",\"iconsextract\",\"7zip\",\"powertoys\",\"terminal\",\"notepadplusplus\",\"vlc\",\"firefox\",\"everything\",\"sharex\",\"obs\",\"steam\",\"discord\",\"nextdns\",\"googledrive\",\"chatgpt\",\"remove-linkedin\",\"consumer-features\",\"wallpaper\",\"dark-mode\",\"hidden-files\",\"file-extensions\",\"desktop-apps\",\"running-icon\",\"developer-mode\",\"long-paths\",\"disable-bing-search\",\"taskbar-left\",\"end-task-context\"]); })()");
+        const smokeTasks=JSON.stringify([...apps,...settings]);
+        const result = await window.webContents.executeJavaScript(`(async () => { if (document.querySelector('.hero input[type=checkbox],.hero select') || !window.installstreet) throw new Error('Invalid UI'); return await window.installstreet.start('check',null,${smokeTasks}); })()`);
         if (result.code !== 0) throw new Error('Read-only backend check failed.');
         await new Promise(resolve => setTimeout(resolve, 300));
-        const complete = await window.webContents.executeJavaScript("document.getElementById('count').textContent === '46 / 46 tasks' && !document.getElementById('run').disabled" );
+        const expectedTasks=apps.length+settings.length;
+        const complete = await window.webContents.executeJavaScript(`document.getElementById('count').textContent === '${expectedTasks} / ${expectedTasks} tasks' && !document.getElementById('run').disabled`);
         if (!complete) throw new Error('Renderer did not finish the read-only check.');
         const screenshot = await window.webContents.capturePage();
         await fs.mkdir(path.join(dataRoot, 'tmp'), { recursive: true });

@@ -8,12 +8,18 @@ const appRoster = [
   ['notepadplusplus','Notepad++','dev'],['vlc','VLC Media Player','media'],['firefox','Mozilla Firefox','browsers'],
   ['everything','Everything','utilities'],['sharex','ShareX','utilities'],['obs','OBS Studio','media'],
   ['steam','Steam','gaming'],['discord','Discord','gaming'],['nextdns','NextDNS','utilities'],
-  ['googledrive','Google Drive','utilities'],['chatgpt','ChatGPT','utilities']
+  ['googledrive','Google Drive','utilities'],['chatgpt','ChatGPT','utilities'],
+  ['ahk','AutoHotkey','dev'],['blender','Blender','media'],['clipchamp','Microsoft Clipchamp','media'],
+  ['davinciresolve','DaVinci Resolve','media'],['githubdesktop','GitHub Desktop','dev'],['godot','Godot Engine','dev'],
+  ['homebrew','Homebrew for WSL','dev'],['scoop','Scoop','dev'],['tailscale','Tailscale','utilities'],
+  ['visualstudio','Visual Studio Community 2022','dev'],['vmware','VMware Workstation Pro','dev'],['wsl','Windows Subsystem for Linux','dev'],['zoom','Zoom Workplace','media']
 ];
 const appIconExtensions = {
   '7zip':'webp',chrome:'webp',codex:'png',discord:'png',dotnet10:'webp',firefox:'webp',
   googledrive:'svg',icloud:'webp',itunes:'webp',nextdns:'svg',obs:'webp',playwright:'png',
-  powertoys:'png',roblox:'webp',sharex:'png',steam:'webp',vlc:'png',winrar:'webp',winget:'png'
+  powertoys:'png',roblox:'webp',sharex:'png',steam:'webp',vlc:'png',winrar:'webp',winget:'png',
+  blender:'webp',clipchamp:'svg',davinciresolve:'webp',githubdesktop:'webp',godot:'webp',
+  homebrew:'webp',tailscale:'png',visualstudio:'webp',vmware:'png',wsl:'webp',ahk:'png',scoop:'webp',zoom:'png'
 };
 const appRosterRoot=document.getElementById('app-roster');
 for(const [id,name,category] of appRoster){
@@ -44,22 +50,6 @@ document.querySelectorAll('.category-chip').forEach(chip => {
     document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     applyFilters();
-  });
-});
-
-// ── Select all / Deselect all ───────────────────────────────────────────────
-document.getElementById('select-all').addEventListener('click', () => {
-  document.querySelectorAll('#app-roster li[data-app]').forEach(li => {
-    if (li.style.display !== 'none') {
-      const cb = li.querySelector('input.task-choice');
-      if (cb && !cb.disabled) cb.checked = true;
-    }
-  });
-});
-document.getElementById('deselect-all').addEventListener('click', () => {
-  document.querySelectorAll('#app-roster li[data-app]').forEach(li => {
-    const cb = li.querySelector('input.task-choice');
-    if (cb && !cb.disabled) cb.checked = false;
   });
 });
 

@@ -175,6 +175,71 @@
       "kind": "Icons8",
       "source": "https://img.icons8.com/color/96/chatgpt.png",
       "attribution": "https://icons8.com/"
+    },
+    {
+      "app": "ahk",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/ahk.png"
+    },
+    {
+      "app": "blender",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/blender.webp"
+    },
+    {
+      "app": "clipchamp",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/clipchamp.svg"
+    },
+    {
+      "app": "davinciresolve",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/DaVinciResolve.webp"
+    },
+    {
+      "app": "githubdesktop",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/githubDesktop.webp"
+    },
+    {
+      "app": "godot",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/godot.webp"
+    },
+    {
+      "app": "homebrew",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/homebrew.webp"
+    },
+    {
+      "app": "scoop",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/scoop.webp"
+    },
+    {
+      "app": "tailscale",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/tailscale.png"
+    },
+    {
+      "app": "visualstudio",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/visualStudio.webp"
+    },
+    {
+      "app": "vmware",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/vmware.png"
+    },
+    {
+      "app": "wsl",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/wsl.webp"
+    },
+    {
+      "app": "zoom",
+      "kind": "User-provided app icon",
+      "source": "BRAINSTORM/zoom.png"
     }
   ]
 }

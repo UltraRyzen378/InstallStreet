@@ -1,6 +1,6 @@
 ﻿param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('winget','git','gh','chrome','codex','rufus','playwright','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context')]
+    [ValidateSet('winget','git','gh','chrome','codex','rufus','playwright','nvm-windows','vscode','dotnet10','roblox','iconsextract','dimmer','python','itunes','icloud','iloader','veracrypt','winrar','desktop-apps','dark-mode','hidden-files','file-extensions','running-icon','7zip','powertoys','terminal','notepadplusplus','vlc','firefox','everything','sharex','obs','steam','discord','nextdns','googledrive','chatgpt','ahk','blender','clipchamp','davinciresolve','githubdesktop','godot','homebrew','scoop','tailscale','visualstudio','vmware','wsl','zoom','developer-mode','long-paths','disable-bing-search','taskbar-left','end-task-context')]
     [string]$Task,
     [ValidateSet('Check','Run')][string]$Mode = 'Check'
 )
@@ -119,6 +119,57 @@ function Test-WingetPackage([string]$Id, [string]$Source = 'winget') {
     if (!$exe) { return $false }
     $result = & $exe list --id $Id --exact --source $Source --disable-interactivity 2>&1
     return ($LASTEXITCODE -eq 0 -and "$result" -match [regex]::Escape($Id))
+}
+function Test-DaVinciResolve {
+    foreach ($path in @("$env:ProgramFiles\Blackmagic Design\DaVinci Resolve\Resolve.exe", "${env:ProgramFiles(x86)}\Blackmagic Design\DaVinci Resolve\Resolve.exe")) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) { return $true }
+    }
+    foreach ($base in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall')) {
+        if (Test-Path $base) { foreach ($key in (Get-ChildItem $base -ErrorAction SilentlyContinue)) { $item = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue; if ($item.DisplayName -match '^DaVinci Resolve( |$)') { return $true } } }
+    }
+    return $false
+}
+function Test-VMwareWorkstation {
+    foreach ($path in @("$env:ProgramFiles\VMware\VMware Workstation\vmware.exe", "${env:ProgramFiles(x86)}\VMware\VMware Workstation\vmware.exe")) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) { return $true }
+    }
+    foreach ($base in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall')) {
+        if (Test-Path $base) { foreach ($key in (Get-ChildItem $base -ErrorAction SilentlyContinue)) { $item = Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue; if ($item.DisplayName -match '^VMware Workstation') { return $true } } }
+    }
+    return $false
+}
+function Test-Scoop {
+    Refresh-TaskEnvironment
+    $command = Get-Command scoop -ErrorAction SilentlyContinue
+    if (!$command) { return $false }
+    & $command.Source --version 2>&1 | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
+function Test-Homebrew {
+    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
+    if (!$wsl) { return $false }
+    $distros = @(& $wsl.Source --list --quiet 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $false }
+    foreach ($entry in $distros) {
+        $distro = ([string]$entry).Trim([char]0).Trim()
+        if (!$distro) { continue }
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo.FileName = $wsl.Source
+        $process.StartInfo.Arguments = '-d "' + $distro.Replace('"','') + '" --exec sh -lc "command -v brew >/dev/null 2>&1"'
+        $process.StartInfo.UseShellExecute = $false
+        $process.StartInfo.CreateNoWindow = $true
+        try {
+            if (!$process.Start()) { continue }
+            if (!$process.WaitForExit(10000)) { $process.Kill(); continue }
+            if ($process.ExitCode -eq 0) { return $true }
+        } catch { } finally { $process.Dispose() }
+    }
+    return $false
+}
+function Open-ManualInstallPage([string]$Url, [string]$Message) {
+    Write-Output $Message
+    Start-Process -FilePath $Url
+    Write-Output 'Complete the publisher setup, then use Check only or Retry selected to verify.'
 }
 function Install-WingetPackage([string]$Id, [string]$Locale = '', [string]$Source = 'winget') {
     if (!(Test-Winget)) { throw 'WinGet is unavailable. Set up WinGet first.' }
@@ -450,6 +501,19 @@ function Test-Task {
         'nextdns' { return (Test-WingetPackage 'NextDNS.NextDNS') }
         'googledrive' { return (Test-WingetPackage 'Google.GoogleDrive') }
         'chatgpt' { return (Test-WingetPackage '9NT1R1C2HH7J' -Source 'msstore') }
+        'ahk' { return (Test-WingetPackage 'AutoHotkey.AutoHotkey') }
+        'blender' { return (Test-WingetPackage 'BlenderFoundation.Blender') }
+        'clipchamp' { return (Test-WingetPackage '9P1J8S7CCWWT' -Source 'msstore') }
+        'davinciresolve' { return (Test-DaVinciResolve) }
+        'githubdesktop' { return (Test-WingetPackage 'GitHub.GitHubDesktop') }
+        'godot' { return (Test-WingetPackage 'GodotEngine.GodotEngine') }
+        'homebrew' { return (Test-Homebrew) }
+        'scoop' { return (Test-Scoop) }
+        'tailscale' { return (Test-WingetPackage 'Tailscale.Tailscale') }
+        'visualstudio' { return (Test-WingetPackage 'Microsoft.VisualStudio.2022.Community') }
+        'vmware' { return (Test-VMwareWorkstation) }
+        'wsl' { return (Test-WingetPackage 'Microsoft.WSL') }
+        'zoom' { return (Test-WingetPackage 'Zoom.Zoom') }
         'developer-mode' {
             return (Test-RegistryValue 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' 'AllowDevelopmentWithoutDevLicense' 1)
         }
@@ -629,6 +693,19 @@ try {
         'nextdns'        { Install-WingetPackage 'NextDNS.NextDNS' }
         'googledrive'    { Install-WingetPackage 'Google.GoogleDrive' }
         'chatgpt'        { Install-WingetPackage '9NT1R1C2HH7J' -Source 'msstore' }
+        'ahk' { Install-WingetPackage 'AutoHotkey.AutoHotkey' }
+        'blender' { Install-WingetPackage 'BlenderFoundation.Blender' }
+        'clipchamp' { Install-WingetPackage '9P1J8S7CCWWT' -Source 'msstore' }
+        'davinciresolve' { Open-ManualInstallPage 'https://www.blackmagicdesign.com/products/davinciresolve' 'DaVinci Resolve requires downloading and completing setup on Blackmagic Design official site.' }
+        'githubdesktop' { Install-WingetPackage 'GitHub.GitHubDesktop' }
+        'godot' { Install-WingetPackage 'GodotEngine.GodotEngine' }
+        'homebrew' { Open-ManualInstallPage 'https://docs.brew.sh/Homebrew-on-Linux' 'Homebrew runs inside a Linux distribution on WSL 2; InstallStreet installs WSL but leaves Linux distribution setup and Homebrew shell steps to you.' }
+        'scoop' { Open-ManualInstallPage 'https://scoop.sh/' 'Scoop standard setup is per-user and should be run from a regular, non-administrator PowerShell window.' }
+        'tailscale' { Install-WingetPackage 'Tailscale.Tailscale' }
+        'visualstudio' { Install-WingetPackage 'Microsoft.VisualStudio.2022.Community' }
+        'vmware' { Open-ManualInstallPage 'https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro' 'VMware Workstation Pro downloads require the Broadcom portal. InstallStreet opens the official portal; download and run the installer there.' }
+        'wsl' { Install-WingetPackage 'Microsoft.WSL' }
+        'zoom' { Install-WingetPackage 'Zoom.Zoom' }
         'developer-mode' {
             Set-Dword 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' 'AllowDevelopmentWithoutDevLicense' 1
         }

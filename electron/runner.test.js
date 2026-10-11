@@ -18,12 +18,13 @@ test('all setup actions run the complete catalog and capture fragmented output',
     const pending = runner.start(mode);
     assert.deepEqual(invocation[1], [mode === 'check' ? '--check' : '--run', 'all']);
     assert.equal(invocation[2].shell, false);
-    child.stdout.write('[1/46] Goo'); child.stdout.write('gle Chrome\r\n');
+    const total=require('./presets').apps.length+require('./presets').settings.length;
+    child.stdout.write(`[1/${total}] Goo`); child.stdout.write('gle Chrome\r\n');
     child.stderr.write('diagnostic\n'); child.stdout.write('Result: done\n');
     child.stdout.write('tail'); child.emit('close', 0);
     assert.equal((await pending).code, 0); assert.equal(runner.busy, false);
-    assert.deepEqual(logs, ['[1/46] Google Chrome', 'diagnostic', 'Result: done', 'tail']);
-    assert.equal(states.at(-1).completed, 46);
+    assert.deepEqual(logs, [`[1/${total}] Google Chrome`, 'diagnostic', 'Result: done', 'tail']);
+    assert.equal(states.at(-1).completed, total);
   }
 });
 test('rejects simultaneous and unknown actions', async () => {

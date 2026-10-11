@@ -32,8 +32,9 @@ If a download fails or first-logon execution does not run, launch
 Successful tasks are detected and skipped on retry. Logs remain in that folder's StatusHQ.
 The media excludes personal GitHub profiles, update tokens, and existing logs.
 
-The UI retains its dark Windows Installer style and bundled offline logos.
-Icon sources are documented in electron/assets/apps/SOURCES.json.
+The UI retains its dark Windows Installer style and bundled offline logos, including
+the user-provided BRAINSTORM logos. Icon sources and required attribution are listed
+in `electron/assets/apps/SOURCES.json`.
 
 ## Applications installed
 
@@ -73,6 +74,26 @@ installations are checked and skipped. Opening InstallStreet or running
 | NextDNS | `NextDNS.NextDNS` through WinGet | `nextdns` |
 | Google Drive | `Google.GoogleDrive` through WinGet | `googledrive` |
 | ChatGPT for Windows | Official Microsoft Store app through WinGet (`9NT1R1C2HH7J`) | `chatgpt` |
+| AutoHotkey v2 | `AutoHotkey.AutoHotkey` through WinGet | `ahk` |
+| Blender | `BlenderFoundation.Blender` through WinGet | `blender` |
+| Microsoft Clipchamp | Microsoft Store app (`9P1J8S7CCWWT`) | `clipchamp` |
+| DaVinci Resolve | Opens the official Blackmagic Design download page for manual setup | `davinciresolve` |
+| GitHub Desktop | `GitHub.GitHubDesktop` through WinGet | `githubdesktop` |
+| Godot Engine | `GodotEngine.GodotEngine` through WinGet | `godot` |
+| Homebrew for WSL | Installs the WSL package; opens Homebrew's official Linux/WSL setup guide | `homebrew` |
+| Scoop | Opens the official Scoop setup page; install from a regular PowerShell session | `scoop` |
+| Tailscale | `Tailscale.Tailscale` through WinGet | `tailscale` |
+| Visual Studio Community 2022 | `Microsoft.VisualStudio.2022.Community` through WinGet | `visualstudio` |
+| VMware Workstation Pro | Opens Broadcom's official download portal for manual setup | `vmware` |
+| Windows Subsystem for Linux | `Microsoft.WSL` through WinGet | `wsl` |
+| Zoom Workplace | `Zoom.Zoom` through WinGet | `zoom` |
+
+DaVinci Resolve and VMware require the user to complete the publisher's download
+and installation flow. Scoop's per-user installer should be run from a regular,
+non-administrator PowerShell session. Homebrew runs inside a configured WSL 2
+Linux distribution; InstallStreet installs WSL but does not create a Linux user
+or run Homebrew's Linux bootstrap script. InstallStreet opens the relevant official
+setup page for these manual steps and verifies the app when possible.
 
 Playwright creates its TypeScript test project in `BRAINSTORM/playwright` under the
 InstallStreet data folder (the repository during development, `%APPDATA%/InstallStreet`
